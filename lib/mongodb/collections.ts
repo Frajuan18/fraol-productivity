@@ -1,0 +1,26 @@
+export const COLLECTIONS = {
+  USERS: 'users',
+  AUTH_SESSIONS: 'sessions',
+  PROFILES: 'profiles',
+  PLANS: 'plans',
+  PLAN_MEMBERS: 'planMembers',
+  FOCUS_SESSIONS: 'focusSessions',
+  SESSION_HISTORY: 'focusSessions',
+  STATISTICS: 'statistics',
+  PARTNERSHIPS: 'partnerships',
+  PARTNER_PRIVACY_SETTINGS: 'partnerPrivacySettings',
+  CONVERSATIONS: 'conversations',
+  MESSAGES: 'messages',
+  SHARED_FOCUS_SESSIONS: 'sharedFocusSessions',
+  NOTIFICATIONS: 'notifications',
+  MIGRATION_RECORDS: 'migrationRecords',
+  IMAGE_METADATA: 'imageMetadata',
+  IMAGE_EXPORTS: 'imageExports',
+  AUDIT_LOGS: 'auditLogs',
+  DAILY_ANALYTICS: 'dailyAnalytics',
+  WEEKLY_ANALYTICS: 'weeklyAnalytics',
+  MONTHLY_ANALYTICS: 'monthlyAnalytics',
+  DASHBOARD_LAYOUTS: 'dashboardLayouts',
+} as const;
+
+export type CollectionName = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];

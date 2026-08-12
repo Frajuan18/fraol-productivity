@@ -1,15 +1,13 @@
 'use client';
 
-import { useMemo } from 'react';
-import { FiTarget, FiClock, FiTrendingUp, FiCalendar, FiCheckCircle, FiZap } from 'react-icons/fi';
-import { motion } from 'framer-motion';
-import { StatCard } from '@/src/components/ui/StatCard';
-import { MiniCalendar } from '@/src/features/sessions/components/MiniCalendar';
-import { useStatistics } from '@/src/hooks/useStatistics';
-import { sumSessionMinutes, formatMinutesAsHoursMinutes } from '@/src/utils/time';
-import { focusMinutesThisWeek, focusMinutesLastWeek, sessionsOnDate } from '@/src/utils/statistics';
-import { formatShortDate } from '@/src/utils/date';
-import type { Session, Plan } from '@/src/types';
+import { useState } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { FiActivity, FiChevronDown } from 'react-icons/fi';
+import { useDashboardData } from '@/lib/dashboard/useDashboard';
+import { formatLongDate } from '@/src/utils/date';
+import type { Session, Plan, PlanStatus } from '@/src/types';
+import type { AnalyticsResult } from '@/lib/analytics/types';
+import DashboardGrid from './DashboardGrid';
 
 interface TabOverviewProps {
   dailyStats: { focusTime: string; sessions: number; streak: string; productivity: string };
@@ -17,157 +15,113 @@ interface TabOverviewProps {
   weeklyStreak: number;
   totalFocusHours: number;
   plansCount: number;
+  plans: Plan[];
+  user: string | null;
+  analytics?: AnalyticsResult | null;
+  onUpdatePlanStatus?: (id: number, status: PlanStatus) => void;
+  onNavigateTab?: (tab: string) => void;
 }
 
-export default function TabOverview({ focusSessions, plansCount }: TabOverviewProps) {
-  const stats = useStatistics(focusSessions, []);
-  const totalMinutes = sumSessionMinutes(focusSessions);
-  const displayTime = formatMinutesAsHoursMinutes(totalMinutes);
+export default function TabOverview({
+  focusSessions,
+  plans,
+  user,
+  analytics,
+  onUpdatePlanStatus,
+  onNavigateTab,
+}: TabOverviewProps) {
+  const reduced = useReducedMotion();
+  const [showWeekly, setShowWeekly] = useState(false);
+  const bundle = useDashboardData({ sessions: focusSessions, plans, user, analytics: analytics ?? null });
 
-  const weeklyMinutes = focusMinutesThisWeek(focusSessions);
-  const weeklyDisplay = formatMinutesAsHoursMinutes(weeklyMinutes);
+  const { userName, greeting, todayCount, todayCompleted, activeSession, weekDisplay, weekChange, weekChangeDisplay, weekCompleted, weekSessionCount } = bundle;
 
-  const weeklyChange = useMemo(() => {
-    const thisWeek = focusMinutesThisWeek(focusSessions);
-    const lastWeek = focusMinutesLastWeek(focusSessions);
-    if (lastWeek === 0 && thisWeek === 0) return { change: 0, display: '0%' };
-    if (lastWeek === 0) return { change: 100, display: '+100%' };
-    const change = ((thisWeek - lastWeek) / lastWeek) * 100;
-    const rounded = Math.round(change);
-    return { change: rounded, display: rounded > 0 ? `+${rounded}%` : `${rounded}%` };
-  }, [focusSessions]);
+  const todayDate = new Date();
 
-  const todayStr = formatShortDate(new Date());
-  const todaySessions = focusSessions.filter((s) => s.date === todayStr);
-  const todayMinutes = sumSessionMinutes(todaySessions);
-  const todayDisplay = formatMinutesAsHoursMinutes(todayMinutes);
-  const todayCount = todaySessions.length;
+  const dailySummary = activeSession
+    ? 'Your focus session is running — keep going.'
+    : todayCount > 0
+      ? `You completed ${todayCompleted} session${todayCompleted !== 1 ? 's' : ''} today.`
+      : bundle.nextPlan
+        ? 'Your next plan is ready.'
+        : 'No focus sessions yet today. Start when you are ready.';
 
-  const completedCount = stats.sessionCounts.completed;
-  const totalSessions = stats.sessionCounts.total;
-
-  const recentSessions = focusSessions.slice(0, 3);
+  const fade = (delay: number) => ({
+    initial: { opacity: 0, y: 6 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: reduced ? 0 : 0.18, delay: reduced ? 0 : delay },
+  });
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Plans"
-          value={plansCount}
-          delay={0.05}
-          icon={<FiTarget className="text-info" size={18} />}
-          trend={{ value: 'Active today', isPositive: true }}
-        />
-        <StatCard
-          label="Sessions"
-          value={totalSessions}
-          delay={0.1}
-          icon={<FiClock className="text-accent" size={18} />}
-          trend={{ value: `${completedCount} completed`, isPositive: true }}
-        />
-        <StatCard
-          label="Streak"
-          value={`${stats.streak} days`}
-          delay={0.15}
-          icon={<FiTrendingUp className="text-warning" size={18} />}
-          trend={{ value: stats.streak > 0 ? 'Keep it going!' : 'Start today!', isPositive: stats.streak > 0 }}
-        />
-        <StatCard
-          label="Focus Hours"
-          value={displayTime}
-          delay={0.2}
-          icon={<FiZap className="text-success" size={18} />}
-          trend={{ value: `${weeklyChange.display} this week`, isPositive: weeklyChange.change >= 0 }}
-        />
-      </div>
+    <div className="space-y-8">
+      <motion.header {...fade(0)} className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="max-w-[640px]">
+          <div className="text-[13px] text-text-muted">{formatLongDate(todayDate)}</div>
+          <h1 className="mt-1.5 text-[34px] sm:text-[40px] font-semibold leading-[1.1] tracking-[-0.025em] text-text">
+            Good {greeting}, {userName}
+          </h1>
+          <p className="mt-2 text-[15px] text-text-secondary">{dailySummary}</p>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.25 }}
-          className="bg-surface rounded-2xl p-6 border border-border"
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <FiCalendar className="text-text-secondary" size={18} />
-            <h3 className="text-sm font-medium text-text">Recent Sessions</h3>
-          </div>
-          <div className="space-y-3">
-            {recentSessions.length === 0 ? (
-              <div className="text-center py-6 text-text-muted text-sm">No sessions yet. Start your first session!</div>
-            ) : (
-              recentSessions.map((session, index) => (
-                <div
-                  key={session.id || index}
-                  className="flex items-center justify-between p-3 bg-surface-hover rounded-xl border border-border"
+        <div className="relative self-start md:self-auto">
+          <button
+            onClick={() => setShowWeekly((prev) => !prev)}
+            aria-expanded={showWeekly}
+            aria-haspopup="dialog"
+            className="flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-[13px] text-text-secondary hover:bg-surface-hover transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
+          >
+            <FiActivity size={14} className="text-accent" />
+            <span>{weekChangeDisplay} this week</span>
+            <FiChevronDown size={13} className={`transition-transform duration-200 ${showWeekly ? 'rotate-180' : ''}`} />
+          </button>
+
+          <AnimatePresence>
+            {showWeekly && (
+              <>
+                <button
+                  className="fixed inset-0 z-20 cursor-default"
+                  aria-hidden="true"
+                  tabIndex={-1}
+                  onClick={() => setShowWeekly(false)}
+                />
+                <motion.div
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  transition={{ duration: reduced ? 0 : 0.15 }}
+                  className="absolute right-0 top-full mt-2 z-30 w-64 card-glass rounded-2xl p-4"
+                  role="dialog"
+                  aria-label="This week summary"
                 >
-                  <div>
-                    <div className="text-sm font-medium text-text">{session.task}</div>
-                    <div className="text-xs text-text-secondary">
-                      {session.duration} &bull; {session.date}
+                  <div className="text-[13px] font-medium text-text">This week</div>
+                  <dl className="mt-3 space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <dt className="text-[13px] text-text-secondary">Focus time</dt>
+                      <dd className="text-[13px] font-medium text-text tabular-nums">{weekDisplay}</dd>
                     </div>
-                  </div>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full ${
-                      session.status === 'Completed'
-                        ? 'bg-success-muted text-success'
-                        : session.status === 'In Progress'
-                          ? 'bg-warning-muted text-warning'
-                          : 'bg-danger-muted text-danger'
-                    }`}
-                  >
-                    {session.status}
-                  </span>
-                </div>
-              ))
+                    <div className="flex items-center justify-between gap-2">
+                      <dt className="text-[13px] text-text-secondary">vs last week</dt>
+                      <dd className={`text-[13px] font-medium tabular-nums ${weekChange >= 0 ? 'text-success' : 'text-danger'}`}>
+                        {weekChangeDisplay}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <dt className="text-[13px] text-text-secondary">Completed</dt>
+                      <dd className="text-[13px] font-medium text-text tabular-nums">
+                        {weekCompleted}/{weekSessionCount}
+                      </dd>
+                    </div>
+                  </dl>
+                </motion.div>
+              </>
             )}
-            {focusSessions.length > 3 && (
-              <div className="text-center text-xs text-text-muted pt-1">+{focusSessions.length - 3} more sessions</div>
-            )}
-          </div>
-        </motion.div>
+          </AnimatePresence>
+        </div>
+      </motion.header>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
-          className="bg-surface rounded-2xl p-6 border border-border"
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <FiCheckCircle className="text-text-secondary" size={18} />
-            <h3 className="text-sm font-medium text-text">Today&apos;s Summary</h3>
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-surface-hover rounded-xl border border-border">
-              <span className="text-sm text-text-secondary">Focus Time Today</span>
-              <span className="text-sm font-medium text-text">{todayDisplay}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-surface-hover rounded-xl border border-border">
-              <span className="text-sm text-text-secondary">Sessions Today</span>
-              <span className="text-sm font-medium text-text">{todayCount}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-surface-hover rounded-xl border border-border">
-              <span className="text-sm text-text-secondary">Total Focus Hours</span>
-              <span className="text-sm font-medium text-text">{displayTime}</span>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-surface-hover rounded-xl border border-border">
-              <span className="text-sm text-text-secondary">Weekly Change</span>
-              <span className={`text-sm font-medium ${weeklyChange.change >= 0 ? 'text-success' : 'text-danger'}`}>
-                {weeklyChange.display}
-              </span>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.35 }}
-          className="lg:self-start"
-        >
-          <MiniCalendar sessions={focusSessions} />
-        </motion.div>
-      </div>
+      <motion.div {...fade(0.05)}>
+        <DashboardGrid bundle={bundle} onNavigateTab={(tab) => onNavigateTab?.(tab)} onUpdatePlanStatus={onUpdatePlanStatus} />
+      </motion.div>
     </div>
   );
 }

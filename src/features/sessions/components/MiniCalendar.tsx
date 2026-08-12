@@ -3,10 +3,15 @@
 import { memo, useMemo, useState } from 'react';
 import { FiChevronLeft, FiChevronRight, FiCalendar } from 'react-icons/fi';
 import { getMonthGrid, getMonthName, isToday } from '@/src/utils/date';
+import { sumSessionMinutes, formatMinutesAsHoursMinutes } from '@/src/utils/time';
 import type { Session } from '@/src/types';
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+function formatAccessibleDate(date: Date): string {
+  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
 interface MiniCalendarProps {
@@ -40,15 +45,20 @@ const heatmapText: Record<number, string> = {
 
 export const MiniCalendar = memo(function MiniCalendar({ sessions }: MiniCalendarProps) {
   const [calendarDate, setCalendarDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const { daysInMonth, firstDayOfMonth } = getMonthGrid(calendarDate);
   const monthName = getMonthName(calendarDate);
   const year = calendarDate.getFullYear();
 
   const changeMonth = (increment: number) => {
-    const newDate = new Date(calendarDate);
-    newDate.setMonth(newDate.getMonth() + increment);
-    setCalendarDate(newDate);
+    setCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + increment, 1));
+  };
+
+  const goToToday = () => {
+    const now = new Date();
+    setCalendarDate(now);
+    setSelectedDate(now);
   };
 
   const dayData = useMemo(() => {
@@ -66,35 +76,54 @@ export const MiniCalendar = memo(function MiniCalendar({ sessions }: MiniCalenda
     return { counts, max };
   }, [sessions, calendarDate, daysInMonth]);
 
+  const selectedSummary = useMemo(() => {
+    if (!selectedDate) return null;
+    const dateStr = formatDate(selectedDate);
+    const daySessions = sessions.filter((s) => s.date === dateStr);
+    return {
+      label: formatAccessibleDate(selectedDate),
+      count: daySessions.length,
+      minutes: sumSessionMinutes(daySessions),
+    };
+  }, [sessions, selectedDate]);
+
   return (
-    <div className="bg-surface rounded-2xl p-4 border border-border">
-      <div className="flex items-center justify-between mb-3">
+    <div className="card-glass rounded-[22px] p-6">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <FiCalendar className="text-text-secondary" size={16} />
-          <h3 className="text-sm font-medium text-text">Activity</h3>
+          <h3 className="text-[16px] font-semibold tracking-[-0.01em] text-text">Activity</h3>
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={() => changeMonth(-1)}
-            className="p-1 rounded-md hover:bg-surface-hover transition-all text-text-secondary hover:text-text"
+            className="p-2 rounded-lg hover:bg-surface-hover transition-colors duration-150 text-text-secondary hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
             aria-label="Previous month"
           >
-            <FiChevronLeft size={14} />
+            <FiChevronLeft size={16} />
           </button>
-          <span className="text-xs font-semibold text-text px-1 min-w-[80px] text-center">
-            {monthName} {year}
-          </span>
+          <button
+            onClick={goToToday}
+            className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-text-secondary hover:text-text hover:bg-surface-hover transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
+            aria-label="Go to today"
+          >
+            Today
+          </button>
           <button
             onClick={() => changeMonth(1)}
-            className="p-1 rounded-md hover:bg-surface-hover transition-all text-text-secondary hover:text-text"
+            className="p-2 rounded-lg hover:bg-surface-hover transition-colors duration-150 text-text-secondary hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
             aria-label="Next month"
           >
-            <FiChevronRight size={14} />
+            <FiChevronRight size={16} />
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-0.5">
+      <div className="text-xs font-medium text-text-muted mb-3" aria-live="polite">
+        {monthName} {year}
+      </div>
+
+      <div className="grid grid-cols-7 gap-1">
         {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
           <div key={day} className="text-center text-[10px] text-text-muted py-1 font-medium">
             {day}
@@ -105,28 +134,49 @@ export const MiniCalendar = memo(function MiniCalendar({ sessions }: MiniCalenda
         ))}
         {dayData.counts.map(({ date, count }) => {
           const today = isToday(date);
+          const isSelected = selectedDate !== null && date.toDateString() === selectedDate.toDateString();
+          const minutes = sumSessionMinutes(sessions.filter((s) => s.date === formatDate(date)));
           const level = heatmapLevel(count, dayData.max);
-
+          const label = `${formatAccessibleDate(date)} — ${count} session${count !== 1 ? 's' : ''}, ${formatMinutesAsHoursMinutes(minutes)} focused`;
           return (
-            <div
+            <button
               key={date.getDate()}
-              className={`relative flex items-center justify-center rounded-lg transition-all ${
-                today ? 'ring-1 ring-border-hover' : ''
+              type="button"
+              onClick={() => setSelectedDate(date)}
+              aria-label={label}
+              title={label}
+              aria-pressed={isSelected}
+              className={`relative flex items-center justify-center rounded-lg transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                today || isSelected ? 'ring-1 ring-border-hover' : ''
               }`}
-              style={{ minHeight: '28px' }}
+              style={{ minHeight: '32px' }}
             >
               <div
-                className={`absolute inset-0 rounded-lg ${heatmapBg[level]} ${
-                  level === 0 && !today ? 'opacity-0' : ''
-                }`}
+                className={`absolute inset-0 rounded-lg ${heatmapBg[level]} ${level === 0 && !today ? 'opacity-0' : ''}`}
               />
-              <span className={`relative text-[11px] font-medium z-10 ${heatmapText[level]}`}>{date.getDate()}</span>
-            </div>
+              <span
+                className={`relative text-[11px] font-medium z-10 ${heatmapText[level]} ${isSelected ? 'text-accent' : ''}`}
+              >
+                {date.getDate()}
+              </span>
+            </button>
           );
         })}
       </div>
 
-      <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-border">
+      {selectedSummary ? (
+        <div className="mt-4 rounded-xl bg-surface-hover/70 border border-border px-4 py-3">
+          <div className="text-[13px] font-medium text-text">{selectedSummary.label}</div>
+          <div className="text-xs text-text-muted mt-0.5">
+            {selectedSummary.count} session{selectedSummary.count !== 1 ? 's' : ''} &middot;{' '}
+            {formatMinutesAsHoursMinutes(selectedSummary.minutes)} focused
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4 text-xs text-text-muted">Select a day to see its activity.</div>
+      )}
+
+      <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-border">
         <span className="text-[10px] text-text-muted">Less</span>
         <div className="w-3 h-3 rounded-sm bg-accent/10" />
         <div className="w-3 h-3 rounded-sm bg-accent/20" />

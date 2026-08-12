@@ -107,7 +107,8 @@ export const SessionCalendar = memo(function SessionCalendar({ sessions, onDelet
   );
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="card-glass rounded-[22px] p-5 sm:p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -166,7 +167,7 @@ export const SessionCalendar = memo(function SessionCalendar({ sessions, onDelet
                 tabIndex={isSelectedDate ? 0 : -1}
                 className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all relative ${
                   isSelectedDate
-                    ? 'bg-accent text-white'
+                    ? 'bg-accent text-accent-contrast'
                     : isToday
                       ? 'bg-surface-hover text-text border border-hover'
                       : hasSession
@@ -176,7 +177,7 @@ export const SessionCalendar = memo(function SessionCalendar({ sessions, onDelet
                 aria-label={`${monthName} ${day}${hasSession ? `, ${sessionCount} session(s)` : ''}`}
                 aria-current={isToday ? 'date' : undefined}
               >
-                <span className={`text-sm font-medium ${isSelectedDate ? 'text-white' : ''}`}>{day}</span>
+                <span className={`text-sm font-medium ${isSelectedDate ? 'text-accent-contrast' : ''}`}>{day}</span>
                 {hasSession && (
                   <div className="flex items-center gap-0.5 mt-0.5">
                     <div className={`w-1 h-1 rounded-full ${isSelectedDate ? 'bg-white' : 'bg-success'}`} />
@@ -188,7 +189,7 @@ export const SessionCalendar = memo(function SessionCalendar({ sessions, onDelet
                   </div>
                 )}
                 {allCompleted && (
-                  <div className={`absolute -top-0.5 -right-0.5 ${isSelectedDate ? 'text-white' : 'text-success'}`}>
+                  <div className={`absolute -top-0.5 -right-0.5 ${isSelectedDate ? 'text-accent-contrast' : 'text-success'}`}>
                     <FiCheckCircle size={10} />
                   </div>
                 )}
@@ -217,7 +218,7 @@ export const SessionCalendar = memo(function SessionCalendar({ sessions, onDelet
         </div>
       </div>
 
-      <div className="bg-surface-hover rounded-2xl p-4 border border-border">
+      <div className="card-glass rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">
           <h4 className="text-sm font-medium text-text">
             {selectedDate
@@ -275,6 +276,7 @@ export const SessionCalendar = memo(function SessionCalendar({ sessions, onDelet
             ))}
           </div>
         )}
+      </div>
       </div>
     </div>
   );

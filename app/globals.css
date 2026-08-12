@@ -2,7 +2,7 @@
 @import '../src/styles/themes.css';
 
 :root {
-  font-family: 'Sora', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', var(--font-inter), sans-serif;
 }
 
 * {
@@ -32,4 +32,50 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-hover);
+}
+
+/* Focus Mode screen (landing) — dark-only scoped palette. Keeps this screen dark
+   regardless of the global theme saved by the user. */
+.focus-screen {
+  --page: #101114;
+  --surface: #1b1d22;
+  --surface-hover: #23252b;
+  --surface-raised: #202229;
+  --glass: #1c1e24;
+  --glass-border: rgba(255, 255, 255, 0.09);
+  --text: #f2f3f5;
+  --text-secondary: #a6abb5;
+  --text-muted: #777d87;
+  --text-disabled: #4a4e56;
+  --accent: #c88a43;
+  --accent-hover: #d79a52;
+  --accent-pressed: #b97936;
+  --accent-muted: rgba(200, 138, 67, 0.14);
+  --accent-contrast: #101114;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.14);
+  --divider: rgba(255, 255, 255, 0.08);
+  --focus-ring: rgba(200, 138, 67, 0.45);
+  --overlay: rgba(16, 17, 20, 0.85);
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 8px 24px rgba(0, 0, 0, 0.2);
+  --card-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.2), 0 16px 40px rgba(0, 0, 0, 0.28);
+}
+
+@keyframes fd-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fd-animate-polygon {
+  animation: fd-fade-in 350ms cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fd-animate-polygon {
+    animation: none !important;
+  }
 }

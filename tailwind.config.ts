@@ -5,7 +5,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sora: ['var(--font-sora)', 'sans-serif'],
+        system: ['var(--font-inter)', 'sans-serif'],
       },
     },
   },

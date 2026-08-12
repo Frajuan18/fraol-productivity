@@ -101,7 +101,7 @@ describe('countSessionsByStatus', () => {
   });
 
   it('returns 0 for unknown status', () => {
-    expect(countSessionsByStatus(mockSessions, 'Unknown')).toBe(0);
+    expect(countSessionsByStatus(mockSessions, 'Unknown' as Session['status'])).toBe(0);
   });
 });
 

@@ -1,3 +1,5 @@
+import type { PlanCollaborationFields } from '@/src/types/collaboration';
+
 export const PLAN_STATUS = {
   COMPLETED: 'completed',
   IN_PROGRESS: 'in-progress',
@@ -23,6 +25,17 @@ export const PLAN_TYPE = {
 
 export type PlanTypeValue = (typeof PLAN_TYPE)[keyof typeof PLAN_TYPE];
 
+export interface PlanFile {
+  id: string;
+  originalName: string;
+  storedName: string;
+  storagePath: string;
+  mimeType: string;
+  size: number;
+  pageCount?: number;
+  uploadedAt: string;
+}
+
 export interface Plan {
   id: number;
   title: string;
@@ -32,6 +45,19 @@ export interface Plan {
   date: string;
   priority: PlanPriority;
   category: string;
+  file?: PlanFile | null;
+  /**
+   * Collaboration model (optional so existing local data and creation paths keep working):
+   * - planType: 'personal' | 'common' (defaults to 'personal')
+   * - visibility: 'private' | 'partner_shared' (defaults to 'private')
+   * - ownerId / memberRole: identity + role when a multi-user backend is present
+   */
+  planType?: PlanCollaborationFields['planType'];
+  visibility?: PlanCollaborationFields['visibility'];
+  ownerId?: PlanCollaborationFields['ownerId'];
+  memberRole?: PlanCollaborationFields['memberRole'];
+  memberCount?: PlanCollaborationFields['memberCount'];
+  updatedAt?: PlanCollaborationFields['updatedAt'];
 }
 
 export type NewPlan = Omit<Plan, 'id' | 'status' | 'date'>;
@@ -53,6 +79,8 @@ export interface Session {
   startTime?: string;
   endTime?: string;
   actualDuration?: string;
+  /** Cursor field for paginated history queries (createdAt of the underlying record). */
+  createdAt?: string;
 }
 
 export interface Stats {

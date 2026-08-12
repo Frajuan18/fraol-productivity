@@ -1,36 +1,38 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { FiBookOpen } from 'react-icons/fi';
 import { useBibleVerse } from '@/src/hooks/useBibleVerse';
 import { LoadingSpinner } from '@/src/components/ui/LoadingSpinner';
 
 export function LandingBibleVerse() {
-  const { verse, isLoading, error } = useBibleVerse();
+  const { verse, isLoading } = useBibleVerse();
+  const reduced = useReducedMotion();
 
   return (
     <motion.div
       key={verse?.reference || 'verse'}
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.8, delay: 0.2 }}
-      className="max-w-md w-full text-center bg-surface/60 backdrop-blur-md rounded-xl p-4 border border-border"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: reduced ? 0 : 0.7, delay: reduced ? 0 : 0.15, ease: 'easeOut' }}
+      className="flex w-full flex-col items-center rounded-[20px] border border-[rgba(255,255,255,0.09)] bg-[#1C1E24] px-6 py-7 text-center shadow-[0_2px_14px_rgba(0,0,0,0.22)] sm:px-8"
       aria-live="polite"
       aria-label={verse ? `Verse of the day: ${verse.verse} — ${verse.reference}` : 'Loading verse of the day'}
     >
+      <div className="flex items-center gap-2">
+        <FiBookOpen size={13} className="text-[#777D88]" aria-hidden="true" />
+        <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#777D88]">Verse of the Day</span>
+      </div>
       {isLoading ? (
-        <div className="flex items-center justify-center py-2">
+        <div className="flex items-center justify-center py-3">
           <LoadingSpinner label="Loading verse..." />
         </div>
       ) : (
         <>
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <FiBookOpen className="text-text-muted" size={12} />
-            <span className="text-text-muted text-[8px] uppercase tracking-wider">Verse of the Day</span>
-          </div>
-          {/* Users: To remove the Bible verse feature, delete this entire LandingBibleVerse component and remove its usage from LandingPage.tsx */}
-          <p className="text-sm text-text-secondary font-light italic leading-relaxed">&ldquo;{verse?.verse}&rdquo;</p>
-          <p className="text-[10px] text-text-muted mt-2 font-medium">&mdash; {verse?.reference}</p>
+          <p className="mt-3 max-w-xl text-[16px] font-medium leading-relaxed text-[#E7E8EB] sm:text-[17px]">
+            &ldquo;{verse?.verse}&rdquo;
+          </p>
+          <p className="mt-2 text-[13px] font-medium text-[#9297A1]">&mdash; {verse?.reference}</p>
         </>
       )}
     </motion.div>

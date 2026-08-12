@@ -7,6 +7,7 @@ import {
   type Plan,
   type Session,
 } from '@/src/types';
+import { isPlanKind, isPlanMemberRole, isPlanVisibility } from '@/src/types/collaboration';
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -23,8 +24,23 @@ export function isValidSession(value: unknown): value is Session {
   );
 }
 
+export function isValidPlanFile(value: unknown): boolean {
+  if (!isObject(value)) return false;
+  return (
+    typeof value.id === 'string' &&
+    typeof value.originalName === 'string' &&
+    typeof value.storedName === 'string' &&
+    typeof value.storagePath === 'string' &&
+    typeof value.mimeType === 'string' &&
+    typeof value.size === 'number' &&
+    typeof value.uploadedAt === 'string' &&
+    (value.pageCount === undefined || typeof value.pageCount === 'number')
+  );
+}
+
 export function isValidPlan(value: unknown): value is Plan {
   if (!isObject(value)) return false;
+  if (value.file !== undefined && value.file !== null && !isValidPlanFile(value.file)) return false;
   return (
     typeof value.id === 'number' &&
     typeof value.title === 'string' &&
@@ -33,8 +49,26 @@ export function isValidPlan(value: unknown): value is Plan {
     isPlanStatus(value.status) &&
     typeof value.date === 'string' &&
     isPlanPriority(value.priority) &&
-    typeof value.category === 'string'
+    typeof value.category === 'string' &&
+    isOptionalField(value.planType, isPlanKind) &&
+    isOptionalField(value.visibility, isPlanVisibility) &&
+    isOptionalField(value.memberRole, isPlanMemberRole) &&
+    isOptionalString(value.ownerId) &&
+    isOptionalString(value.updatedAt) &&
+    isOptionalNumber(value.memberCount)
   );
+}
+
+function isOptionalString(value: unknown): boolean {
+  return value === undefined || value === null || typeof value === 'string';
+}
+
+function isOptionalNumber(value: unknown): boolean {
+  return value === undefined || value === null || typeof value === 'number';
+}
+
+function isOptionalField(value: unknown, check: (v: unknown) => boolean): boolean {
+  return value === undefined || value === null || check(value);
 }
 
 export function isValidAppData(value: unknown): value is AppData {

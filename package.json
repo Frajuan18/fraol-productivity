@@ -6,6 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "migrate:assess": "tsx scripts/migrate-local-to-mongodb.ts --assess",
+    "migrate:run": "tsx scripts/migrate-local-to-mongodb.ts --run",
+    "partner:seed": "tsx scripts/seed-partnership.ts",
+    "analytics:compute": "tsx scripts/compute-analytics.ts",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
@@ -24,6 +28,7 @@
   },
   "dependencies": {
     "framer-motion": "^12.42.2",
+    "mongodb": "^7.5.0",
     "next": "16.2.12",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -43,6 +48,7 @@
     "lint-staged": "^17.2.0",
     "prettier": "^3.9.6",
     "tailwindcss": "^4",
+    "tsx": "^4.23.4",
     "typescript": "^5",
     "vitest": "^4.1.10"
   }

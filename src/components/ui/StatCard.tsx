@@ -3,6 +3,7 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
+import { AnimatedNumber } from './AnimatedNumber';
 
 interface StatCardProps {
   label: string;
@@ -26,13 +27,15 @@ export const StatCard = memo(function StatCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay }}
-      className="bg-surface rounded-2xl p-4 border border-border"
+      className="card-glass rounded-[20px] p-5 hover:-translate-y-0.5 transition-transform duration-500 relative overflow-hidden"
     >
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-text-secondary text-xs uppercase tracking-wider">{label}</span>
-        {icon && <span className="text-text-secondary">{icon}</span>}
+      <div className="flex items-center gap-2 mb-1">
+        {icon && <span className="text-text-secondary shrink-0">{icon}</span>}
+        <span className="text-xs text-text-secondary">{label}</span>
       </div>
-      <div className={`text-2xl font-bold text-text mt-1 ${valueClassName ?? ''}`}>{value}</div>
+      <div className={`text-2xl font-bold tracking-tight text-text ${valueClassName ?? ''}`}>
+        {typeof value === 'number' ? <AnimatedNumber value={value} /> : value}
+      </div>
       {trend && (
         <div className={`text-xs mt-1 flex items-center gap-1 ${trend.isPositive ? 'text-success' : 'text-danger'}`}>
           <span>{trend.value}</span>

@@ -96,6 +96,7 @@ export const DASHBOARD_TABS = {
   STATS: 'stats',
   PLANS: 'plans',
   PROFILE: 'profile',
+  PARTNER: 'partner',
 } as const;
 
 export type DashboardTab = (typeof DASHBOARD_TABS)[keyof typeof DASHBOARD_TABS];
