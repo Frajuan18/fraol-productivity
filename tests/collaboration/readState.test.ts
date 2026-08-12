@@ -31,12 +31,20 @@ describe('deriveReadState', () => {
   });
 
   it('marks my own sent messages read by the partner marker', () => {
-    const result = deriveReadState([msg('1', 'u1', '2026-01-01T00:00:00.000Z')], { u2: '2026-01-01T00:00:05.000Z' }, 'u1');
+    const result = deriveReadState(
+      [msg('1', 'u1', '2026-01-01T00:00:00.000Z')],
+      { u2: '2026-01-01T00:00:05.000Z' },
+      'u1',
+    );
     expect(result[0].readAt).toBe('2026-01-01T00:00:05.000Z');
   });
 
   it('falls back to legacy per-message readAt when no marker exists', () => {
-    const result = deriveReadState([msg('1', 'u1', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:03.000Z')], undefined, 'u1');
+    const result = deriveReadState(
+      [msg('1', 'u1', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:03.000Z')],
+      undefined,
+      'u1',
+    );
     expect(result[0].readAt).toBe('2026-01-01T00:00:03.000Z');
   });
 

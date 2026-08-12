@@ -2,7 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { FiPlus, FiList, FiCheckCircle, FiActivity, FiXCircle, FiCalendar, FiClock, FiSearch, FiTag } from 'react-icons/fi';
+import {
+  FiPlus,
+  FiList,
+  FiCheckCircle,
+  FiActivity,
+  FiXCircle,
+  FiCalendar,
+  FiClock,
+  FiSearch,
+  FiTag,
+} from 'react-icons/fi';
 import { TabNav } from '@/src/components/ui/TabNav';
 import { SessionTimer } from './components/SessionTimer';
 import { SessionCalendar } from './components/SessionCalendar';
@@ -317,11 +327,13 @@ export default function TabSessions({
                   className="h-8 pr-2 pl-1 bg-transparent text-[13px] font-medium text-text-secondary hover:text-text focus:outline-none"
                 >
                   <option value="all">All types</option>
-                  {taskTypes.filter((t) => t.trim()).map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
+                  {taskTypes
+                    .filter((t) => t.trim())
+                    .map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
                 </select>
               </label>
 

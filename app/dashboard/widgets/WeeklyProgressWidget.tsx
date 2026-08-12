@@ -20,7 +20,9 @@ export default function WeeklyProgressWidget({ bundle }: DashboardWidgetProps) {
           <div className="mt-1 text-xs text-text-muted">Focus this week</div>
         </div>
         <div>
-          <div className={`text-[26px] font-semibold tracking-tight tabular-nums ${weekChange >= 0 ? 'text-success' : 'text-danger'}`}>
+          <div
+            className={`text-[26px] font-semibold tracking-tight tabular-nums ${weekChange >= 0 ? 'text-success' : 'text-danger'}`}
+          >
             {weekChangeDisplay}
           </div>
           <div className="mt-1 text-xs text-text-muted">vs last week</div>
@@ -67,7 +69,10 @@ export default function WeeklyProgressWidget({ bundle }: DashboardWidgetProps) {
       </div>
       <div className="flex justify-between px-0.5 mt-1.5">
         {weekDays.map((d, i) => (
-          <span key={d.date} className={`text-[9px] ${i === weekDays.length - 1 ? 'text-accent font-medium' : 'text-text-muted'}`}>
+          <span
+            key={d.date}
+            className={`text-[9px] ${i === weekDays.length - 1 ? 'text-accent font-medium' : 'text-text-muted'}`}
+          >
             {d.short}
           </span>
         ))}
@@ -75,7 +80,9 @@ export default function WeeklyProgressWidget({ bundle }: DashboardWidgetProps) {
 
       <div className="mt-4 flex items-center gap-1.5 text-[12px] text-text-muted">
         <FiTrendingUp size={13} className="text-accent" />
-        {weekChange >= 0 ? 'Ahead of last week — keep the pace.' : 'A little behind last week — one session today closes the gap.'}
+        {weekChange >= 0
+          ? 'Ahead of last week — keep the pace.'
+          : 'A little behind last week — one session today closes the gap.'}
       </div>
     </div>
   );

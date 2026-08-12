@@ -15,18 +15,8 @@
 import fs from 'fs';
 import path from 'path';
 import './loadEnv';
-import {
-  createBackupSnapshot,
-  ensureBackupsDir,
-  readDataJson,
-  checksumFile,
-} from '@/lib/migration/backup';
-import {
-  buildReport,
-  isMigrationComplete,
-  recordMigration,
-  resetMigrationState,
-} from '@/lib/migration/state';
+import { createBackupSnapshot, ensureBackupsDir, readDataJson, checksumFile } from '@/lib/migration/backup';
+import { buildReport, isMigrationComplete, recordMigration, resetMigrationState } from '@/lib/migration/state';
 import { MIGRATION_NAME, MIGRATION_VERSION } from '@/lib/config';
 import { generateUserId, hashPassword } from '@/lib/auth/password';
 import { isMongoConfigured, getMongoDb } from '@/lib/mongodb/connection';
@@ -77,7 +67,9 @@ async function run() {
   };
 
   if (args.assess || !args.run) {
-    const report = buildReport(counts, ['INFO Assessment only — no MongoDB writes performed. Run with --run to migrate.']);
+    const report = buildReport(counts, [
+      'INFO Assessment only — no MongoDB writes performed. Run with --run to migrate.',
+    ]);
     const reportPath = path.join(ensureBackupsDir(), 'migration-report.txt');
     fs.writeFileSync(reportPath, report, 'utf-8');
     console.log(report);

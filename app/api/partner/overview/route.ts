@@ -14,7 +14,10 @@ export async function GET(request: Request) {
   }
   const repo = createMongoDbRepository();
   if (!repo) {
-    return NextResponse.json({ ok: false, error: 'MongoDB is not configured.', code: 'NOT_CONFIGURED' }, { status: 503 });
+    return NextResponse.json(
+      { ok: false, error: 'MongoDB is not configured.', code: 'NOT_CONFIGURED' },
+      { status: 503 },
+    );
   }
   try {
     const overview = await repo.getPartnerOverview(userId);

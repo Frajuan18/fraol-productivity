@@ -47,12 +47,7 @@ import {
 import { broadcastPartnership, setActiveSession } from '@/lib/realtime/hub';
 import { actualFocusMs, settlePause } from '@/lib/repositories/sharedFocusMath';
 import { deriveReadState } from '@/lib/realtime/readState';
-import {
-  hasShareSnapshots,
-  hasShareStats,
-  hasShareStreak,
-  maskFocusStatus,
-} from '@/lib/repositories/privacyMath';
+import { hasShareSnapshots, hasShareStats, hasShareStreak, maskFocusStatus } from '@/lib/repositories/privacyMath';
 import { buildSessionPage } from '@/lib/repositories/sessionPaging';
 import { buildMessagePage } from '@/lib/repositories/chatPaging';
 import { buildActivityPage } from '@/lib/repositories/activityMath';
@@ -68,7 +63,15 @@ import {
   groupSessionsByDate,
 } from '@/src/utils/statistics';
 import { parseDuration } from '@/src/utils/time';
-import { SESSION_STATUS, PLAN_STATUS, type AppData, type Plan, type PlanStatus, type Session, type Stats } from '@/src/types';
+import {
+  SESSION_STATUS,
+  PLAN_STATUS,
+  type AppData,
+  type Plan,
+  type PlanStatus,
+  type Session,
+  type Stats,
+} from '@/src/types';
 import type {
   AuthUser,
   PartnerOverview,
@@ -229,7 +232,13 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
   // ---- Core app data (legacy compatibility) --------------------------------
 
   async loadAppData(userId = ''): Promise<AppData> {
-    if (!userId) return { plans: [], sessions: [], stats: EMPTY_STATS, user: { name: '', streak: 0, totalFocusHours: 0, taskTypes: [] } };
+    if (!userId)
+      return {
+        plans: [],
+        sessions: [],
+        stats: EMPTY_STATS,
+        user: { name: '', streak: 0, totalFocusHours: 0, taskTypes: [] },
+      };
     const plans = [...(await this.getMyPlans(userId)), ...(await this.getCommonPlans(userId))];
     const sessions = (await this.listSessions(userId, undefined, SESSION_PAGE_SIZE)).items;
     const stats = await this.getStatistics(userId);
@@ -266,7 +275,9 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
     const planIds = memberships.map((m) => m.planId);
     if (planIds.length === 0) return [];
     const roleByPlan = new Map<number, PlanMemberDoc['role']>(memberships.map((m) => [m.planId, m.role]));
-    const plans = await this.db.collection<PlanDoc>(COLLECTIONS.PLANS).find({ planType: 'common', _id: { $in: planIds } });
+    const plans = await this.db
+      .collection<PlanDoc>(COLLECTIONS.PLANS)
+      .find({ planType: 'common', _id: { $in: planIds } });
     return plans
       .map((doc) => ({ ...planDocToPlan(doc), memberRole: roleByPlan.get(doc._id) }))
       .sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''));
@@ -311,7 +322,11 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
   async createCommonPlan(userId: string, input: PlanInput): Promise<Plan> {
     const partner = await this.getConfiguredPartner(userId);
     if (!partner) {
-      throw new RepositoryError('No configured partner. Run `npm run partner:seed` to set up the fixed partnership first.', 'NO_PARTNER', 409);
+      throw new RepositoryError(
+        'No configured partner. Run `npm run partner:seed` to set up the fixed partnership first.',
+        'NO_PARTNER',
+        409,
+      );
     }
     const id = Date.now();
     const now = nowIso();
@@ -353,7 +368,17 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
     const plan = await this.db.collection<PlanDoc>(COLLECTIONS.PLANS).findOne({ _id: planId });
     if (!plan || plan.planType !== 'personal' || plan.ownerId !== userId) return null;
     const update: Record<string, unknown> = { updatedAt: nowIso() };
-    for (const key of ['title', 'description', 'type', 'status', 'date', 'priority', 'category', 'file', 'visibility'] as const) {
+    for (const key of [
+      'title',
+      'description',
+      'type',
+      'status',
+      'date',
+      'priority',
+      'category',
+      'file',
+      'visibility',
+    ] as const) {
       if (updates[key] !== undefined) update[key] = updates[key];
     }
     await this.db.collection<PlanDoc>(COLLECTIONS.PLANS).updateOne({ _id: planId }, { $set: update });
@@ -361,7 +386,12 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
     return updated ? planDocToPlan(updated) : null;
   }
 
-  async updateCommonPlan(userId: string, planId: number, updates: Partial<Plan>, expectedUpdatedAt?: string): Promise<Plan | null> {
+  async updateCommonPlan(
+    userId: string,
+    planId: number,
+    updates: Partial<Plan>,
+    expectedUpdatedAt?: string,
+  ): Promise<Plan | null> {
     const member = await this.db.collection<PlanMemberDoc>(COLLECTIONS.PLAN_MEMBERS).findOne({ planId, userId });
     if (!member || member.role === 'viewer') return null;
     const current = await this.db.collection<PlanDoc>(COLLECTIONS.PLANS).findOne({ _id: planId });
@@ -395,10 +425,9 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
     if (!plan || plan.planType !== 'personal' || plan.ownerId !== userId) return null;
     const allowed = visibility === 'private' || visibility === 'partner_shared';
     if (!allowed) return null;
-    await this.db.collection<PlanDoc>(COLLECTIONS.PLANS).updateOne(
-      { _id: planId },
-      { $set: { visibility, updatedAt: nowIso() } },
-    );
+    await this.db
+      .collection<PlanDoc>(COLLECTIONS.PLANS)
+      .updateOne({ _id: planId }, { $set: { visibility, updatedAt: nowIso() } });
     const updated = await this.db.collection<PlanDoc>(COLLECTIONS.PLANS).findOne({ _id: planId });
     return updated ? planDocToPlan(updated) : null;
   }
@@ -408,11 +437,7 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
   async setUserStatus(userId: string, status: UserStatus): Promise<void> {
     await this.db
       .collection<ProfileDoc>(COLLECTIONS.PROFILES)
-      .updateOne(
-        { userId },
-        { $set: { status, lastSeenAt: nowIso() } },
-        { upsert: true },
-      );
+      .updateOne({ userId }, { $set: { status, lastSeenAt: nowIso() } }, { upsert: true });
     try {
       const configured = await this.getConfiguredPartner(userId);
       if (!configured) return;
@@ -431,10 +456,12 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
   async getActiveSharedFocus(userId: string): Promise<SharedFocusSession | null> {
     const configured = await this.getConfiguredPartner(userId);
     if (!configured) return null;
-    const docs = await this.db.collection<SharedFocusDoc>(COLLECTIONS.SHARED_FOCUS_SESSIONS).find(
-      { partnershipId: configured.partnership._id, status: { $in: ['running', 'paused'] } },
-      { sort: { createdAt: -1 }, limit: 1 },
-    );
+    const docs = await this.db
+      .collection<SharedFocusDoc>(COLLECTIONS.SHARED_FOCUS_SESSIONS)
+      .find(
+        { partnershipId: configured.partnership._id, status: { $in: ['running', 'paused'] } },
+        { sort: { createdAt: -1 }, limit: 1 },
+      );
     const doc = docs[0];
     return doc ? sharedFocusDocToSession(doc) : null;
   }
@@ -508,7 +535,12 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
     const settled =
       session.status === 'paused'
         ? settlePause(session, nowMs)
-        : { status: session.status, pausedAt: session.pausedAt, totalPausedMs: session.totalPausedMs, endsAt: session.endsAt };
+        : {
+            status: session.status,
+            pausedAt: session.pausedAt,
+            totalPausedMs: session.totalPausedMs,
+            endsAt: session.endsAt,
+          };
     const actualMinutes = Math.round(actualFocusMs(session.startedAt, settled.totalPausedMs, nowMs) / 60_000);
     const completed: SharedFocusSession = {
       ...session,
@@ -719,10 +751,7 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
   async getPlanningSignals(userId: string): Promise<import('@/lib/assistant/types').HistorySignals> {
     // Use a short time budget: the assistant only needs signals, which are derived from
     // the user's own plans and sessions — no raw history is exposed.
-    const [sessions, plans] = await Promise.all([
-      this.getSessions(userId),
-      this.getMyPlans(userId),
-    ]);
+    const [sessions, plans] = await Promise.all([this.getSessions(userId), this.getMyPlans(userId)]);
     const { computeHistorySignals } = await import('@/lib/assistant/signals');
     return computeHistorySignals(sessions, plans);
   }
@@ -755,7 +784,9 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
     const { partnership, partnerId } = configured;
     const profileDoc = await this.db.collection<ProfileDoc>(COLLECTIONS.PROFILES).findOne({ userId: partnerId });
     if (!profileDoc) return null;
-    const privacy = await this.db.collection<PrivacyDoc>(COLLECTIONS.PARTNER_PRIVACY_SETTINGS).findOne({ userId: partnerId });
+    const privacy = await this.db
+      .collection<PrivacyDoc>(COLLECTIONS.PARTNER_PRIVACY_SETTINGS)
+      .findOne({ userId: partnerId });
     const conversation = await this.ensureConversation(partnership._id);
     const rawProfile = profileDocToProfile(profileDoc);
     // "Last active" is presence detail: it is only exposed when live-focus sharing is on.
@@ -810,7 +841,9 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
     const configured = await this.getConfiguredPartner(userId);
     if (!configured) return null;
     const partnerId = configured.partnerId;
-    const privacy = await this.db.collection<PrivacyDoc>(COLLECTIONS.PARTNER_PRIVACY_SETTINGS).findOne({ userId: partnerId });
+    const privacy = await this.db
+      .collection<PrivacyDoc>(COLLECTIONS.PARTNER_PRIVACY_SETTINGS)
+      .findOne({ userId: partnerId });
     const shareStats = hasShareStats(privacy);
     const shareStreak = hasShareStreak(privacy);
 
@@ -870,17 +903,16 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
     return {
       ...view,
       sharedPlans,
-      statistics:
-        statistics ?? {
-          privacyEnabled: false,
-          focusMinutesToday: 0,
-          focusMinutesThisWeek: 0,
-          completedSessions: 0,
-          currentStreak: 0,
-          weeklyChange: 0,
-          weeklyChangeDisplay: '0%',
-          recentActivity: [],
-        },
+      statistics: statistics ?? {
+        privacyEnabled: false,
+        focusMinutesToday: 0,
+        focusMinutesThisWeek: 0,
+        completedSessions: 0,
+        currentStreak: 0,
+        weeklyChange: 0,
+        weeklyChangeDisplay: '0%',
+        recentActivity: [],
+      },
     };
   }
 
@@ -905,15 +937,16 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
       : { userId, ...DEFAULT_PARTNER_PRIVACY };
   }
 
-  async updatePrivacySettings(userId: string, updates: Partial<PartnerPrivacySettings>): Promise<PartnerPrivacySettings> {
+  async updatePrivacySettings(
+    userId: string,
+    updates: Partial<PartnerPrivacySettings>,
+  ): Promise<PartnerPrivacySettings> {
     const configured = await this.getConfiguredPartner(userId);
     const existing = await this.getPrivacySettings(userId);
     const next: PartnerPrivacySettings = { ...existing, ...pickPrivacyUpdates(updates) };
-    await this.db.collection<PrivacyDoc>(COLLECTIONS.PARTNER_PRIVACY_SETTINGS).updateOne(
-      { userId },
-      { $set: { ...next, updatedAt: nowIso() } },
-      { upsert: true },
-    );
+    await this.db
+      .collection<PrivacyDoc>(COLLECTIONS.PARTNER_PRIVACY_SETTINGS)
+      .updateOne({ userId }, { $set: { ...next, updatedAt: nowIso() } }, { upsert: true });
     if (configured) {
       if (next.shareLiveFocus !== existing.shareLiveFocus) {
         // Push a corrected presence so the partner stops seeing "focusing" immediately —
@@ -935,10 +968,7 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
     return maskFocusStatus(privacy?.shareLiveFocus, status);
   }
 
-  async getMaskedPresence(
-    userId: string,
-    status: UserStatus,
-  ): Promise<{ status: UserStatus; lastSeenAt: string }> {
+  async getMaskedPresence(userId: string, status: UserStatus): Promise<{ status: UserStatus; lastSeenAt: string }> {
     const [privacy, profile] = await Promise.all([
       this.db.collection<PrivacyDoc>(COLLECTIONS.PARTNER_PRIVACY_SETTINGS).findOne({ userId }),
       this.db.collection<ProfileDoc>(COLLECTIONS.PROFILES).findOne({ userId }),
@@ -964,15 +994,11 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
     return { partnership, partnerId };
   }
 
-  private async findActivePartnership(
-    userId: string,
-  ): Promise<PartnershipDoc | null> {
-    const partnerships = await this.db
-      .collection<PartnershipDoc>(COLLECTIONS.PARTNERSHIPS)
-      .find({
-        status: 'active',
-        $or: [{ userAId: userId }, { userBId: userId }],
-      });
+  private async findActivePartnership(userId: string): Promise<PartnershipDoc | null> {
+    const partnerships = await this.db.collection<PartnershipDoc>(COLLECTIONS.PARTNERSHIPS).find({
+      status: 'active',
+      $or: [{ userAId: userId }, { userBId: userId }],
+    });
     if (partnerships.length === 0) return null;
     return partnerships.find((p) => p.relationshipType === 'fixed_partner') ?? partnerships[0];
   }
@@ -984,7 +1010,9 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
     if (existing) {
       return { id: existing._id, partnershipId: existing.partnershipId, createdAt: existing.createdAt };
     }
-    const partnership = await this.db.collection<PartnershipDoc>(COLLECTIONS.PARTNERSHIPS).findOne({ _id: partnershipId });
+    const partnership = await this.db
+      .collection<PartnershipDoc>(COLLECTIONS.PARTNERSHIPS)
+      .findOne({ _id: partnershipId });
     if (!partnership) throw new Error('Partnership not found.');
     const conversation: ConversationDoc = {
       _id: crypto.randomUUID(),
@@ -999,14 +1027,15 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
   async getConversation(userId: string, partnerId: string): Promise<Conversation> {
     const partnership = await this.findActivePartnership(userId);
     if (!partnership) throw new Error('No active partnership with this partner.');
-    const partnerIsMember =
-      partnership.userAId === partnerId || partnership.userBId === partnerId;
+    const partnerIsMember = partnership.userAId === partnerId || partnership.userBId === partnerId;
     if (!partnerIsMember) throw new Error('No active partnership with this partner.');
     return this.ensureConversation(partnership._id);
   }
 
   async listMessages(userId: string, conversationId: string, cursor?: string, limit = 50): Promise<Message[]> {
-    const conversation = await this.db.collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS).findOne({ _id: conversationId });
+    const conversation = await this.db
+      .collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS)
+      .findOne({ _id: conversationId });
     if (!conversation || !conversation.memberIds.includes(userId)) return [];
     const filter: Record<string, unknown> = { conversationId };
     if (cursor) filter.createdAt = { $lt: cursor };
@@ -1019,7 +1048,9 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
   // ---- Paged history (Phase 11) -------------------------------------------
 
   async listMessagesPaged(userId: string, conversationId: string, cursor?: string, limit = 40): Promise<MessagePage> {
-    const conversation = await this.db.collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS).findOne({ _id: conversationId });
+    const conversation = await this.db
+      .collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS)
+      .findOne({ _id: conversationId });
     if (!conversation || !conversation.memberIds.includes(userId)) {
       return { items: [], hasOlder: false, nextCursor: null };
     }
@@ -1080,7 +1111,9 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
           });
     const roleByPlan = new Map<number, PlanMemberDoc['role']>(memberships.map((m) => [m.planId, m.role]));
     const merged = [...personal, ...common]
-      .map((doc) => (doc.planType === 'common' ? { ...planDocToPlan(doc), memberRole: roleByPlan.get(doc._id) } : planDocToPlan(doc)))
+      .map((doc) =>
+        doc.planType === 'common' ? { ...planDocToPlan(doc), memberRole: roleByPlan.get(doc._id) } : planDocToPlan(doc),
+      )
       .sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''));
     return buildPlanPage(merged, pageSize);
   }
@@ -1088,7 +1121,9 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
   // ---- Shared snapshots (Phase 13) -----------------------------------------
 
   async listSnapshots(userId: string, conversationId: string, cursor?: string, limit = 12): Promise<SnapshotPage> {
-    const conversation = await this.db.collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS).findOne({ _id: conversationId });
+    const conversation = await this.db
+      .collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS)
+      .findOne({ _id: conversationId });
     if (!conversation || !conversation.memberIds.includes(userId)) {
       return { items: [], hasMore: false, nextCursor: null };
     }
@@ -1115,7 +1150,9 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
       const meta = metaById.get(message.mediaId);
       let senderName = nameById.get(message.senderId) ?? '';
       if (!senderName) {
-        const profile = await this.db.collection<ProfileDoc>(COLLECTIONS.PROFILES).findOne({ userId: message.senderId });
+        const profile = await this.db
+          .collection<ProfileDoc>(COLLECTIONS.PROFILES)
+          .findOne({ userId: message.senderId });
         senderName = profile?.displayName ?? 'Partner';
         nameById.set(message.senderId, senderName);
       }
@@ -1140,8 +1177,14 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
     return { items, hasMore, nextCursor: hasMore && last?.createdAt ? last.createdAt : null };
   }
 
-  async saveSnapshot(userId: string, conversationId: string, input: import('@/lib/repositories/ProductivityRepository').SnapshotSaveInput): Promise<Message> {
-    const conversation = await this.db.collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS).findOne({ _id: conversationId });
+  async saveSnapshot(
+    userId: string,
+    conversationId: string,
+    input: import('@/lib/repositories/ProductivityRepository').SnapshotSaveInput,
+  ): Promise<Message> {
+    const conversation = await this.db
+      .collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS)
+      .findOne({ _id: conversationId });
     if (!conversation || !conversation.memberIds.includes(userId)) {
       throw new Error('You are not a member of this conversation.');
     }
@@ -1174,7 +1217,9 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
   }
 
   async exportSnapshots(userId: string, conversationId: string, messageIds: string[]): Promise<ZipExportResult> {
-    const conversation = await this.db.collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS).findOne({ _id: conversationId });
+    const conversation = await this.db
+      .collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS)
+      .findOne({ _id: conversationId });
     if (!conversation || !conversation.memberIds.includes(userId)) {
       throw new Error('You are not a member of this conversation.');
     }
@@ -1183,11 +1228,18 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
     const failed: ZipExportResult['failed'] = [];
     for (const messageId of messageIds) {
       const message = await this.db.collection<MessageDoc>(COLLECTIONS.MESSAGES).findOne({ _id: messageId });
-      if (!message || message.conversationId !== conversationId || message.type !== MESSAGE_TYPE.IMAGE || !message.mediaId) {
+      if (
+        !message ||
+        message.conversationId !== conversationId ||
+        message.type !== MESSAGE_TYPE.IMAGE ||
+        !message.mediaId
+      ) {
         failed.push({ id: messageId, reason: 'Not a snapshot in this conversation.' });
         continue;
       }
-      const meta = await this.db.collection<ImageMetadataDoc>(COLLECTIONS.IMAGE_METADATA).findOne({ gridFsFileId: message.mediaId });
+      const meta = await this.db
+        .collection<ImageMetadataDoc>(COLLECTIONS.IMAGE_METADATA)
+        .findOne({ gridFsFileId: message.mediaId });
       if (!meta) {
         failed.push({ id: messageId, reason: 'Snapshot binary is missing.' });
         continue;
@@ -1199,10 +1251,9 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
       }
       files.push({ name: meta.originalFileName, data: bytes });
       exported.push(messageId);
-      await this.db.collection<ImageMetadataDoc>(COLLECTIONS.IMAGE_METADATA).updateOne(
-        { gridFsFileId: meta.gridFsFileId },
-        { $set: { exportedAt: nowIso() } },
-      );
+      await this.db
+        .collection<ImageMetadataDoc>(COLLECTIONS.IMAGE_METADATA)
+        .updateOne({ gridFsFileId: meta.gridFsFileId }, { $set: { exportedAt: nowIso() } });
     }
     if (files.length === 0) {
       throw new RepositoryError('None of the selected snapshots could be exported.', 'EXPORT_FAILED', 409);
@@ -1213,8 +1264,14 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
     return { fileName, base64: Buffer.from(zip).toString('base64'), exported, failed };
   }
 
-  async removeSnapshotsAfterExport(userId: string, conversationId: string, messageIds: string[]): Promise<SnapshotRemoveResult> {
-    const conversation = await this.db.collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS).findOne({ _id: conversationId });
+  async removeSnapshotsAfterExport(
+    userId: string,
+    conversationId: string,
+    messageIds: string[],
+  ): Promise<SnapshotRemoveResult> {
+    const conversation = await this.db
+      .collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS)
+      .findOne({ _id: conversationId });
     if (!conversation || !conversation.memberIds.includes(userId)) {
       throw new Error('You are not a member of this conversation.');
     }
@@ -1222,11 +1279,18 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
     const failed: SnapshotRemoveResult['failed'] = [];
     for (const messageId of messageIds) {
       const message = await this.db.collection<MessageDoc>(COLLECTIONS.MESSAGES).findOne({ _id: messageId });
-      if (!message || message.conversationId !== conversationId || message.type !== MESSAGE_TYPE.IMAGE || !message.mediaId) {
+      if (
+        !message ||
+        message.conversationId !== conversationId ||
+        message.type !== MESSAGE_TYPE.IMAGE ||
+        !message.mediaId
+      ) {
         failed.push({ id: messageId, reason: 'Not a snapshot in this conversation.' });
         continue;
       }
-      const meta = await this.db.collection<ImageMetadataDoc>(COLLECTIONS.IMAGE_METADATA).findOne({ gridFsFileId: message.mediaId });
+      const meta = await this.db
+        .collection<ImageMetadataDoc>(COLLECTIONS.IMAGE_METADATA)
+        .findOne({ gridFsFileId: message.mediaId });
       if (!meta) {
         failed.push({ id: messageId, reason: 'Snapshot metadata is missing.' });
         continue;
@@ -1246,10 +1310,9 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
           },
         },
       );
-      await this.db.collection<MessageDoc>(COLLECTIONS.MESSAGES).updateOne(
-        { _id: messageId },
-        { $set: { mediaStatus: 'exported_and_removed' } },
-      );
+      await this.db
+        .collection<MessageDoc>(COLLECTIONS.MESSAGES)
+        .updateOne({ _id: messageId }, { $set: { mediaStatus: 'exported_and_removed' } });
       // Best-effort removal of the binary itself.
       await this.deleteGridFsFile(meta.gridFsFileId);
       // System note placed where the snapshot was, so the history reads naturally.
@@ -1282,10 +1345,9 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
   private async readGridFsFile(fileId: string): Promise<Uint8Array | null> {
     const files = await this.db.collection<Document>(`${GRIDFS_BUCKET_NAME}.files`).findOne({ _id: fileId });
     if (!files) return null;
-    const chunks = await this.db.collection<Document>(`${GRIDFS_BUCKET_NAME}.chunks`).find(
-      { files_id: fileId },
-      { sort: { n: 1 } },
-    );
+    const chunks = await this.db
+      .collection<Document>(`${GRIDFS_BUCKET_NAME}.chunks`)
+      .find({ files_id: fileId }, { sort: { n: 1 } });
     const parts: Uint8Array[] = [];
     for (const chunk of chunks) {
       const bytes = binaryToBytes(chunk.data);
@@ -1312,7 +1374,12 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
     }
   }
 
-  private async audit(userId: string, conversationId: string, action: string, detail: Record<string, unknown>): Promise<void> {
+  private async audit(
+    userId: string,
+    conversationId: string,
+    action: string,
+    detail: Record<string, unknown>,
+  ): Promise<void> {
     try {
       await this.db.collection<Document>(COLLECTIONS.AUDIT_LOGS).insertOne({
         _id: crypto.randomUUID(),
@@ -1328,7 +1395,9 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
   }
 
   async sendMessage(userId: string, conversationId: string, input: SendMessageInput): Promise<Message> {
-    const conversation = await this.db.collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS).findOne({ _id: conversationId });
+    const conversation = await this.db
+      .collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS)
+      .findOne({ _id: conversationId });
     if (!conversation || !conversation.memberIds.includes(userId)) {
       throw new Error('You are not a member of this conversation.');
     }
@@ -1357,14 +1426,15 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
   }
 
   async markRead(userId: string, conversationId: string): Promise<boolean> {
-    const conversation = await this.db.collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS).findOne({ _id: conversationId });
+    const conversation = await this.db
+      .collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS)
+      .findOne({ _id: conversationId });
     if (!conversation || !conversation.memberIds.includes(userId)) return false;
     const readAt = nowIso();
     // Conversation-level read cursor: a single update marks everything up to now as read.
-    await this.db.collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS).updateOne(
-      { _id: conversationId },
-      { $set: { [`readState.${userId}`]: readAt } },
-    );
+    await this.db
+      .collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS)
+      .updateOne({ _id: conversationId }, { $set: { [`readState.${userId}`]: readAt } });
     broadcastPartnership(conversation.partnershipId, {
       type: 'chat.read',
       conversationId,
@@ -1375,7 +1445,9 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
   }
 
   async sendTyping(userId: string, conversationId: string): Promise<boolean> {
-    const conversation = await this.db.collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS).findOne({ _id: conversationId });
+    const conversation = await this.db
+      .collection<ConversationDoc>(COLLECTIONS.CONVERSATIONS)
+      .findOne({ _id: conversationId });
     if (!conversation || !conversation.memberIds.includes(userId)) return false;
     broadcastPartnership(conversation.partnershipId, {
       type: 'chat.typing',
@@ -1420,7 +1492,9 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
   }
 
   async getMedia(mediaId: string): Promise<MediaMeta | null> {
-    const doc = await this.db.collection<ImageMetadataDoc>(COLLECTIONS.IMAGE_METADATA).findOne({ gridFsFileId: mediaId });
+    const doc = await this.db
+      .collection<ImageMetadataDoc>(COLLECTIONS.IMAGE_METADATA)
+      .findOne({ gridFsFileId: mediaId });
     if (!doc) return null;
     return {
       id: doc._id,
@@ -1443,7 +1517,9 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
     if (patch.messageId) set.messageId = patch.messageId;
     if (patch.fileName) set.originalFileName = patch.fileName;
     if (typeof patch.size === 'number') set.fileSize = patch.size;
-    await this.db.collection<ImageMetadataDoc>(COLLECTIONS.IMAGE_METADATA).updateOne({ gridFsFileId: mediaId }, { $set: set });
+    await this.db
+      .collection<ImageMetadataDoc>(COLLECTIONS.IMAGE_METADATA)
+      .updateOne({ gridFsFileId: mediaId }, { $set: set });
     return this.getMedia(mediaId);
   }
 

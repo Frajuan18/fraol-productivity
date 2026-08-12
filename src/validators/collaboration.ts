@@ -131,12 +131,7 @@ export function isValidSharedFocusStatus(value: unknown): value is SharedFocusSt
 
 export function isValidSharedFocusParticipant(value: unknown): value is SharedFocusParticipant {
   if (!isObject(value)) return false;
-  return (
-    isString(value.userId) &&
-    isBoolean(value.ready) &&
-    isString(value.joinedAt) &&
-    isBoolean(value.completed)
-  );
+  return isString(value.userId) && isBoolean(value.ready) && isString(value.joinedAt) && isBoolean(value.completed);
 }
 
 export function isValidSharedFocusSession(value: unknown): value is SharedFocusSession {

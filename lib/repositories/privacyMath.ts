@@ -32,9 +32,7 @@ export function hasShareLiveFocus(privacy: Pick<PartnerPrivacySettings, 'shareLi
 }
 
 /** True when the partner may upload new snapshots into the shared chat. */
-export function hasShareSnapshots(
-  privacy: { shareSnapshots?: boolean | null } | null | undefined,
-): boolean {
+export function hasShareSnapshots(privacy: { shareSnapshots?: boolean | null } | null | undefined): boolean {
   return !isExplicitlyOff(privacy?.shareSnapshots);
 }
 
@@ -42,17 +40,17 @@ export function hasShareSnapshots(
  * Coerces a "focusing" status to "online" when live-focus sharing is disabled so a partner
  * can never observe an active focus session through presence. Other statuses pass through.
  */
-export function maskFocusStatus(
-  shareLiveFocus: boolean | null | undefined,
-  status: UserStatus,
-): UserStatus {
+export function maskFocusStatus(shareLiveFocus: boolean | null | undefined, status: UserStatus): UserStatus {
   if (shareLiveFocus === false && status === 'focusing') return 'online';
   return status;
 }
 
 /** The status rows shown in the Partner Privacy settings summary. */
 export function privacySummary(
-  privacy: Pick<PartnerPrivacySettings, 'shareWeeklyStats' | 'shareStreak' | 'shareLiveFocus' | 'shareSnapshots'> | null | undefined,
+  privacy:
+    | Pick<PartnerPrivacySettings, 'shareWeeklyStats' | 'shareStreak' | 'shareLiveFocus' | 'shareSnapshots'>
+    | null
+    | undefined,
 ): { statistics: PrivacyGate; focusStatus: PrivacyGate; recentActivity: PrivacyGate; snapshots: PrivacyGate } {
   return {
     statistics: hasShareStats(privacy) ? 'shared' : 'private',

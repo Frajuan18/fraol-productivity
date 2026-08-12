@@ -39,7 +39,15 @@ import {
   countSessionsByStatus,
   groupSessionsByDate,
 } from '@/src/utils/statistics';
-import { SESSION_STATUS, PLAN_STATUS, type AppData, type Plan, type PlanStatus, type Session, type Stats } from '@/src/types';
+import {
+  SESSION_STATUS,
+  PLAN_STATUS,
+  type AppData,
+  type Plan,
+  type PlanStatus,
+  type Session,
+  type Stats,
+} from '@/src/types';
 import { parseDuration } from '@/src/utils/time';
 import type {
   AuthUser,
@@ -151,7 +159,12 @@ export class LocalJsonProductivityRepository implements ProductivityRepository {
     return data.plans[index];
   }
 
-  async updateCommonPlan(userId: string, planId: number, updates: Partial<Plan>, expectedUpdatedAt?: string): Promise<Plan | null> {
+  async updateCommonPlan(
+    userId: string,
+    planId: number,
+    updates: Partial<Plan>,
+    expectedUpdatedAt?: string,
+  ): Promise<Plan | null> {
     const data = await this.loadAppData();
     const index = data.plans.findIndex((p) => p.id === planId && p.planType === 'common');
     if (index === -1) return null;
@@ -171,11 +184,7 @@ export class LocalJsonProductivityRepository implements ProductivityRepository {
     return true;
   }
 
-  async changePlanVisibility(
-    userId: string,
-    planId: number,
-    visibility: PlanVisibility,
-  ): Promise<Plan | null> {
+  async changePlanVisibility(userId: string, planId: number, visibility: PlanVisibility): Promise<Plan | null> {
     return this.updatePersonalPlan(userId, planId, { visibility });
   }
 
@@ -281,7 +290,10 @@ export class LocalJsonProductivityRepository implements ProductivityRepository {
     return normalizeLayout(stored);
   }
 
-  async saveDashboardLayout(_userId: string, layout: import('@/lib/dashboard/types').DashboardLayout): Promise<boolean> {
+  async saveDashboardLayout(
+    _userId: string,
+    layout: import('@/lib/dashboard/types').DashboardLayout,
+  ): Promise<boolean> {
     return dashboardLayoutService.save(normalizeLayout(layout));
   }
 
@@ -321,7 +333,9 @@ export class LocalJsonProductivityRepository implements ProductivityRepository {
       (p) =>
         p.planType !== 'common' &&
         p.visibility === 'partner_shared' &&
-        (p.ownerId === partnerId || (p.ownerId === undefined && partnerId !== DEMO_USER_ID) || partnerId === DEMO_USER_ID),
+        (p.ownerId === partnerId ||
+          (p.ownerId === undefined && partnerId !== DEMO_USER_ID) ||
+          partnerId === DEMO_USER_ID),
     );
   }
 
@@ -383,17 +397,16 @@ export class LocalJsonProductivityRepository implements ProductivityRepository {
     return {
       ...partner,
       sharedPlans,
-      statistics:
-        statistics ?? {
-          privacyEnabled: false,
-          focusMinutesToday: 0,
-          focusMinutesThisWeek: 0,
-          completedSessions: 0,
-          currentStreak: 0,
-          weeklyChange: 0,
-          weeklyChangeDisplay: '0%',
-          recentActivity: [],
-        },
+      statistics: statistics ?? {
+        privacyEnabled: false,
+        focusMinutesToday: 0,
+        focusMinutesThisWeek: 0,
+        completedSessions: 0,
+        currentStreak: 0,
+        weeklyChange: 0,
+        weeklyChangeDisplay: '0%',
+        recentActivity: [],
+      },
     };
   }
 
@@ -407,10 +420,15 @@ export class LocalJsonProductivityRepository implements ProductivityRepository {
   async getPrivacySettings(userId: string): Promise<PartnerPrivacySettings> {
     const collab = await this.loadCollabData();
     const existing = collab.privacySettings.find((s) => s.userId === userId);
-    return existing ? { ...existing, shareSnapshots: existing.shareSnapshots ?? true } : { userId, ...DEFAULT_PARTNER_PRIVACY };
+    return existing
+      ? { ...existing, shareSnapshots: existing.shareSnapshots ?? true }
+      : { userId, ...DEFAULT_PARTNER_PRIVACY };
   }
 
-  async updatePrivacySettings(userId: string, updates: Partial<PartnerPrivacySettings>): Promise<PartnerPrivacySettings> {
+  async updatePrivacySettings(
+    userId: string,
+    updates: Partial<PartnerPrivacySettings>,
+  ): Promise<PartnerPrivacySettings> {
     const collab = await this.loadCollabData();
     const existing = collab.privacySettings.find((s) => s.userId === userId) ?? { userId, ...DEFAULT_PARTNER_PRIVACY };
     const next: PartnerPrivacySettings = { ...existing, ...pickPrivacyFields(updates) };
@@ -455,7 +473,12 @@ export class LocalJsonProductivityRepository implements ProductivityRepository {
     return this.ensureConversation(partnership.id);
   }
 
-  async listMessages(userId: string, conversationId: string, cursor?: string, limit = 50): Promise<import('@/src/types/collaboration').Message[]> {
+  async listMessages(
+    userId: string,
+    conversationId: string,
+    cursor?: string,
+    limit = 50,
+  ): Promise<import('@/src/types/collaboration').Message[]> {
     const collab = await this.loadCollabData();
     const conversation = collab.conversations.find((c) => c.id === conversationId);
     if (!conversation) return [];
@@ -463,9 +486,7 @@ export class LocalJsonProductivityRepository implements ProductivityRepository {
     if (!isMember) return [];
     let messages = collab.messages.filter((m) => m.conversationId === conversationId);
     if (cursor) messages = messages.filter((m) => m.createdAt < cursor);
-    const sorted = messages
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .slice(0, limit);
+    const sorted = messages.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit);
     return deriveReadState(sorted, conversation.readState, userId);
   }
 
@@ -504,7 +525,10 @@ export class LocalJsonProductivityRepository implements ProductivityRepository {
         createdAt: s.createdAt,
       }));
     const filtered = cursor ? items.filter((i) => activityBeforeCursor(i, cursor)) : items;
-    return buildActivityPage([...filtered].sort((a, b) => b.createdAt.localeCompare(a.createdAt)), pageSize);
+    return buildActivityPage(
+      [...filtered].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+      pageSize,
+    );
   }
 
   async listPlansPaged(userId: string, cursor?: string, limit = 20): Promise<PlanPage> {
@@ -559,11 +583,19 @@ export class LocalJsonProductivityRepository implements ProductivityRepository {
     throw new Error('Snapshot export requires MongoDB mode.');
   }
 
-  async removeSnapshotsAfterExport(_userId: string, _conversationId: string, _messageIds: string[]): Promise<SnapshotRemoveResult> {
+  async removeSnapshotsAfterExport(
+    _userId: string,
+    _conversationId: string,
+    _messageIds: string[],
+  ): Promise<SnapshotRemoveResult> {
     throw new Error('Snapshot removal requires MongoDB mode.');
   }
 
-  async sendMessage(userId: string, conversationId: string, input: SendMessageInput): Promise<import('@/src/types/collaboration').Message> {
+  async sendMessage(
+    userId: string,
+    conversationId: string,
+    input: SendMessageInput,
+  ): Promise<import('@/src/types/collaboration').Message> {
     const collab = await this.loadCollabData();
     const conversation = collab.conversations.find((c) => c.id === conversationId);
     if (!conversation) throw new Error('Conversation not found.');
@@ -663,7 +695,10 @@ export class LocalJsonProductivityRepository implements ProductivityRepository {
       if (event.key !== LOCAL_REALTIME_EVENT) return;
       if (handlers.onMessage && event.newValue) {
         try {
-          const payload = JSON.parse(event.newValue) as { type?: string; message?: import('@/src/types/collaboration').Message };
+          const payload = JSON.parse(event.newValue) as {
+            type?: string;
+            message?: import('@/src/types/collaboration').Message;
+          };
           if (payload.type === 'message' && payload.message) handlers.onMessage(payload.message);
         } catch {
           // ignore malformed broadcast

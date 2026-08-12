@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  Reorder,
-  useDragControls,
-  useReducedMotion,
-  type DragControls,
-} from 'framer-motion';
+import { Reorder, useDragControls, useReducedMotion, type DragControls } from 'framer-motion';
 import {
   FiActivity,
   FiCalendar,
@@ -148,7 +143,9 @@ function GridItem({ widget, editable, editing, bundle, onNavigateTab, onUpdatePl
         onHide={() => actions.toggleVisible(widget.id)}
         onMove={(direction) => actions.move(widget.id, direction)}
         onMoveEdge={(edge) => actions.moveToEdge(widget.id, edge)}
-        dragHandle={editable ? <DragGrip dragControls={dragControls} label={`Drag ${meta.title} to reorder`} /> : undefined}
+        dragHandle={
+          editable ? <DragGrip dragControls={dragControls} label={`Drag ${meta.title} to reorder`} /> : undefined
+        }
       >
         {renderWidgetFor(widget, bundle, onNavigateTab, onUpdatePlanStatus)}
       </WidgetCard>
@@ -201,7 +198,9 @@ export default function DashboardGrid({ bundle, onNavigateTab, onUpdatePlanStatu
             onClick={() => setEditing(!editing)}
             aria-pressed={editing}
             className={`flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-              editing ? 'bg-accent text-accent-contrast' : 'bg-surface text-text-secondary hover:bg-surface-hover hover:text-text'
+              editing
+                ? 'bg-accent text-accent-contrast'
+                : 'bg-surface text-text-secondary hover:bg-surface-hover hover:text-text'
             }`}
           >
             <FiSettings size={14} />

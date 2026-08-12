@@ -37,7 +37,12 @@ function localIso(date: Date): string {
 }
 
 let seq = 0;
-function makeSession(date: string, minutes: number, status: Session['status'] = 'Completed', startTime?: string): Session {
+function makeSession(
+  date: string,
+  minutes: number,
+  status: Session['status'] = 'Completed',
+  startTime?: string,
+): Session {
   seq += 1;
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
@@ -192,7 +197,11 @@ describe('nextUpcomingPlan', () => {
 
 describe('planProgress', () => {
   it('computes completed count and percentage', () => {
-    const plans = [makePlan({ status: 'completed' }), makePlan({ status: 'pending' }), makePlan({ status: 'completed' })];
+    const plans = [
+      makePlan({ status: 'completed' }),
+      makePlan({ status: 'pending' }),
+      makePlan({ status: 'completed' }),
+    ];
     const { completed, progress } = planProgress(plans);
     expect(completed).toBe(2);
     expect(progress).toBe(67);
@@ -201,7 +210,10 @@ describe('planProgress', () => {
 
 describe('dailyGoalMinutes', () => {
   it('uses the signal capacity when present', () => {
-    expect(dailyGoalMinutes({ dailyCapacityMinutes: 120 } as never)).toEqual({ goalMinutes: 120, goalSource: 'signals' });
+    expect(dailyGoalMinutes({ dailyCapacityMinutes: 120 } as never)).toEqual({
+      goalMinutes: 120,
+      goalSource: 'signals',
+    });
   });
   it('falls back to the default goal otherwise', () => {
     expect(dailyGoalMinutes(null)).toEqual({ goalMinutes: 90, goalSource: 'default' });
@@ -239,7 +251,10 @@ describe('buildInsights', () => {
   });
 
   it('produces up to three insights with stable kinds and tabs', () => {
-    const sessions = [makeSession(shortFor(NOW), 90, 'Completed'), makeSession(shortFor(new Date(2026, 0, 6)), 45, 'Completed')];
+    const sessions = [
+      makeSession(shortFor(NOW), 90, 'Completed'),
+      makeSession(shortFor(new Date(2026, 0, 6)), 45, 'Completed'),
+    ];
     const insights = buildInsights(sessions, { weeklyChange: 25, weeklyChangeDisplay: '+25%', streak: 2 });
     expect(insights.length).toBeGreaterThan(0);
     expect(insights.length).toBeLessThanOrEqual(3);

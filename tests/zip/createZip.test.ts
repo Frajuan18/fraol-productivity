@@ -27,9 +27,13 @@ describe('createZip', () => {
     // Local file header signature (PK\x03\x04)
     expect(bytes.slice(0, 4)).toEqual([0x50, 0x4b, 0x03, 0x04]);
     // Central directory header signature (PK\x01\x02)
-    expect(bytes.some((b, i) => b === 0x50 && bytes[i + 1] === 0x4b && bytes[i + 2] === 0x01 && bytes[i + 3] === 0x02)).toBe(true);
+    expect(
+      bytes.some((b, i) => b === 0x50 && bytes[i + 1] === 0x4b && bytes[i + 2] === 0x01 && bytes[i + 3] === 0x02),
+    ).toBe(true);
     // End of central directory signature (PK\x05\x06) — its 22-byte record ends the file
-    expect(bytes.some((b, i) => b === 0x50 && bytes[i + 1] === 0x4b && bytes[i + 2] === 0x05 && bytes[i + 3] === 0x06)).toBe(true);
+    expect(
+      bytes.some((b, i) => b === 0x50 && bytes[i + 1] === 0x4b && bytes[i + 2] === 0x05 && bytes[i + 3] === 0x06),
+    ).toBe(true);
     // Filename present
     const text = new TextDecoder().decode(u8(bytes));
     expect(text).toContain('a.txt');

@@ -101,9 +101,7 @@ const planCompletion: InsightGenerator = {
   id: 'plan-completion',
   title: 'Plan completion rate',
   generate(ctx: InsightContext): Insight | null {
-    const dailies = ctx.dailies.filter(
-      (d) => d.plansCompleted > 0 || d.plansPending > 0 || d.plansInProgress > 0,
-    );
+    const dailies = ctx.dailies.filter((d) => d.plansCompleted > 0 || d.plansPending > 0 || d.plansInProgress > 0);
     if (dailies.length < 3) return null;
     let rate = 0;
     for (const d of dailies) {

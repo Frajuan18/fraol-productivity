@@ -34,7 +34,18 @@ export default function TabOverview({
   const [showWeekly, setShowWeekly] = useState(false);
   const bundle = useDashboardData({ sessions: focusSessions, plans, user, analytics: analytics ?? null });
 
-  const { userName, greeting, todayCount, todayCompleted, activeSession, weekDisplay, weekChange, weekChangeDisplay, weekCompleted, weekSessionCount } = bundle;
+  const {
+    userName,
+    greeting,
+    todayCount,
+    todayCompleted,
+    activeSession,
+    weekDisplay,
+    weekChange,
+    weekChangeDisplay,
+    weekCompleted,
+    weekSessionCount,
+  } = bundle;
 
   const todayDate = new Date();
 
@@ -72,7 +83,10 @@ export default function TabOverview({
           >
             <FiActivity size={14} className="text-accent" />
             <span>{weekChangeDisplay} this week</span>
-            <FiChevronDown size={13} className={`transition-transform duration-200 ${showWeekly ? 'rotate-180' : ''}`} />
+            <FiChevronDown
+              size={13}
+              className={`transition-transform duration-200 ${showWeekly ? 'rotate-180' : ''}`}
+            />
           </button>
 
           <AnimatePresence>
@@ -101,7 +115,9 @@ export default function TabOverview({
                     </div>
                     <div className="flex items-center justify-between gap-2">
                       <dt className="text-[13px] text-text-secondary">vs last week</dt>
-                      <dd className={`text-[13px] font-medium tabular-nums ${weekChange >= 0 ? 'text-success' : 'text-danger'}`}>
+                      <dd
+                        className={`text-[13px] font-medium tabular-nums ${weekChange >= 0 ? 'text-success' : 'text-danger'}`}
+                      >
                         {weekChangeDisplay}
                       </dd>
                     </div>
@@ -120,7 +136,11 @@ export default function TabOverview({
       </motion.header>
 
       <motion.div {...fade(0.05)}>
-        <DashboardGrid bundle={bundle} onNavigateTab={(tab) => onNavigateTab?.(tab)} onUpdatePlanStatus={onUpdatePlanStatus} />
+        <DashboardGrid
+          bundle={bundle}
+          onNavigateTab={(tab) => onNavigateTab?.(tab)}
+          onUpdatePlanStatus={onUpdatePlanStatus}
+        />
       </motion.div>
     </div>
   );

@@ -205,7 +205,9 @@ function SidebarContent({
 
   return (
     <div className="flex h-full flex-col">
-      <div className={`flex h-16 shrink-0 items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-4'}`}>
+      <div
+        className={`flex h-16 shrink-0 items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-4'}`}
+      >
         <div className={`flex min-w-0 items-center ${isCollapsed ? '' : 'gap-2.5'}`}>
           <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-accent text-accent-contrast shadow-[var(--card-shadow)]">
             <FiZap size={18} />
@@ -595,9 +597,7 @@ export default function Sidebar({
             </span>
             <FiChevronDown
               size={13}
-              className={`shrink-0 text-text-muted transition-transform duration-200 ${
-                islandOpen ? 'rotate-180' : ''
-              }`}
+              className={`shrink-0 text-text-muted transition-transform duration-200 ${islandOpen ? 'rotate-180' : ''}`}
             />
           </button>
 

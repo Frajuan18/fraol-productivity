@@ -10,17 +10,13 @@ interface IndexSpec {
 }
 
 const INDEXES: Record<string, IndexSpec[]> = {
-  [COLLECTIONS.USERS]: [
-    { name: 'users_email_unique', keys: { email: 1 }, unique: true },
-  ],
+  [COLLECTIONS.USERS]: [{ name: 'users_email_unique', keys: { email: 1 }, unique: true }],
   [COLLECTIONS.AUTH_SESSIONS]: [
     { name: 'sessions_token_hash_unique', keys: { tokenHash: 1 }, unique: true },
     { name: 'sessions_userId', keys: { userId: 1 } },
     { name: 'sessions_expiresAt', keys: { expiresAt: 1 } },
   ],
-  [COLLECTIONS.PROFILES]: [
-    { name: 'profiles_email_unique', keys: { email: 1 }, unique: true },
-  ],
+  [COLLECTIONS.PROFILES]: [{ name: 'profiles_email_unique', keys: { email: 1 }, unique: true }],
   [COLLECTIONS.PLANS]: [
     { name: 'plans_ownerId_planType', keys: { ownerId: 1, planType: 1 } },
     { name: 'plans_ownerId_visibility', keys: { ownerId: 1, visibility: 1 } },
@@ -36,9 +32,7 @@ const INDEXES: Record<string, IndexSpec[]> = {
     { name: 'focusSessions_userId_startedAt', keys: { userId: 1, startedAt: -1 } },
     { name: 'focusSessions_userId_createdAt', keys: { userId: 1, createdAt: -1 } },
   ],
-  [COLLECTIONS.STATISTICS]: [
-    { name: 'statistics_userId_date_unique', keys: { userId: 1, date: 1 }, unique: true },
-  ],
+  [COLLECTIONS.STATISTICS]: [{ name: 'statistics_userId_date_unique', keys: { userId: 1, date: 1 }, unique: true }],
   [COLLECTIONS.PARTNERSHIPS]: [
     { name: 'partnerships_userA_userB_unique', keys: { userAId: 1, userBId: 1 }, unique: true },
     { name: 'partnerships_userA_status', keys: { userAId: 1, status: 1 } },
@@ -60,9 +54,7 @@ const INDEXES: Record<string, IndexSpec[]> = {
     { name: 'sharedFocus_partnershipId_status', keys: { partnershipId: 1, status: 1 } },
     { name: 'sharedFocus_partnershipId_status_createdAt', keys: { partnershipId: 1, status: 1, createdAt: -1 } },
   ],
-  [COLLECTIONS.NOTIFICATIONS]: [
-    { name: 'notifications_userId_readAt', keys: { userId: 1, readAt: 1 } },
-  ],
+  [COLLECTIONS.NOTIFICATIONS]: [{ name: 'notifications_userId_readAt', keys: { userId: 1, readAt: 1 } }],
   [COLLECTIONS.MIGRATION_RECORDS]: [
     { name: 'migrationRecords_name_version_unique', keys: { migrationName: 1, version: 1 }, unique: true },
   ],
@@ -72,12 +64,8 @@ const INDEXES: Record<string, IndexSpec[]> = {
     { name: 'imageMetadata_conversationId', keys: { conversationId: 1 } },
     { name: 'imageMetadata_ownerId', keys: { ownerId: 1 } },
   ],
-  [COLLECTIONS.IMAGE_EXPORTS]: [
-    { name: 'imageExports_userId_createdAt', keys: { userId: 1, createdAt: -1 } },
-  ],
-  [COLLECTIONS.AUDIT_LOGS]: [
-    { name: 'auditLogs_userId_createdAt', keys: { userId: 1, createdAt: -1 } },
-  ],
+  [COLLECTIONS.IMAGE_EXPORTS]: [{ name: 'imageExports_userId_createdAt', keys: { userId: 1, createdAt: -1 } }],
+  [COLLECTIONS.AUDIT_LOGS]: [{ name: 'auditLogs_userId_createdAt', keys: { userId: 1, createdAt: -1 } }],
   [COLLECTIONS.DAILY_ANALYTICS]: [
     { name: 'dailyAnalytics_userId_date_unique', keys: { userId: 1, date: 1 }, unique: true },
   ],

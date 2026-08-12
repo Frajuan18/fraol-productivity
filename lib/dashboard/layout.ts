@@ -97,10 +97,7 @@ export function visibleWidgets(layout: DashboardLayout): DashboardWidgetConfig[]
  * partial order) is appended in its previous relative position, and hidden widgets are
  * pinned to the end so the visible order stays exactly what the user dragged into place.
  */
-export function reorderWidgets(
-  layout: DashboardLayout,
-  orderedVisibleIds: DashboardWidgetId[],
-): DashboardLayout {
+export function reorderWidgets(layout: DashboardLayout, orderedVisibleIds: DashboardWidgetId[]): DashboardLayout {
   const byId = new Map<DashboardWidgetId, DashboardWidgetConfig>(layout.widgets.map((w) => [w.id, w]));
   const mentioned = new Set<DashboardWidgetId>(orderedVisibleIds);
   const visible: DashboardWidgetConfig[] = [];
@@ -126,11 +123,18 @@ export function moveWidget(layout: DashboardLayout, id: DashboardWidgetId, direc
   if (target < 0 || target >= visible.length) return layout;
   const next = [...visible];
   [next[index], next[target]] = [next[target], next[index]];
-  return reorderWidgets(layout, next.map((w) => w.id));
+  return reorderWidgets(
+    layout,
+    next.map((w) => w.id),
+  );
 }
 
 /** Moves a visible widget to the first or last visible slot. */
-export function moveWidgetToEdge(layout: DashboardLayout, id: DashboardWidgetId, edge: 'start' | 'end'): DashboardLayout {
+export function moveWidgetToEdge(
+  layout: DashboardLayout,
+  id: DashboardWidgetId,
+  edge: 'start' | 'end',
+): DashboardLayout {
   const visible = layout.widgets.filter((w) => w.visible);
   const index = visible.findIndex((w) => w.id === id);
   if (index < 0) return layout;
@@ -138,7 +142,10 @@ export function moveWidgetToEdge(layout: DashboardLayout, id: DashboardWidgetId,
   const [moved] = next.splice(index, 1);
   if (edge === 'start') next.unshift(moved);
   else next.push(moved);
-  return reorderWidgets(layout, next.map((w) => w.id));
+  return reorderWidgets(
+    layout,
+    next.map((w) => w.id),
+  );
 }
 
 export function toggleWidgetVisible(layout: DashboardLayout, id: DashboardWidgetId): DashboardLayout {

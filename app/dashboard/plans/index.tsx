@@ -1262,9 +1262,7 @@ export default function TabPlans({
                     {!historyHasMore && filteredHistoryPlans.length > HISTORY_PAGE_SIZE && (
                       <div className="flex items-center justify-center gap-2 py-1 text-xs text-text-muted">
                         <FiCheck className="shrink-0" size={13} />
-                        <span>
-                          Showing all {filteredHistoryPlans.length} plans
-                        </span>
+                        <span>Showing all {filteredHistoryPlans.length} plans</span>
                       </div>
                     )}
                   </div>

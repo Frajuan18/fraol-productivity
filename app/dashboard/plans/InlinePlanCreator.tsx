@@ -152,7 +152,11 @@ export default function InlinePlanCreator({
     if (patch.descriptionAppend) {
       setNotesOpen(true);
       setDescription((prev) =>
-        prev.includes(patch.descriptionAppend!) ? prev : prev ? `${prev}\n${patch.descriptionAppend}` : patch.descriptionAppend!,
+        prev.includes(patch.descriptionAppend!)
+          ? prev
+          : prev
+            ? `${prev}\n${patch.descriptionAppend}`
+            : patch.descriptionAppend!,
       );
     }
   }

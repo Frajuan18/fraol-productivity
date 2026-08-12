@@ -30,10 +30,8 @@ export function crc32(data: Uint8Array): number {
 }
 
 function dosDateTime(date: Date): { time: number; dateValue: number } {
-  const time =
-    (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2);
-  const dateValue =
-    ((date.getFullYear() - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate();
+  const time = (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2);
+  const dateValue = ((date.getFullYear() - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate();
   return { time, dateValue };
 }
 

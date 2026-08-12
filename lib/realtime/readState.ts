@@ -10,11 +10,7 @@ import type { Message } from '@/src/types/collaboration';
  */
 export type ReadState = Record<string, string>;
 
-export function deriveReadState(
-  messages: Message[],
-  readState: ReadState | undefined,
-  myUserId: string,
-): Message[] {
+export function deriveReadState(messages: Message[], readState: ReadState | undefined, myUserId: string): Message[] {
   if (!readState) return messages.map((m) => ({ ...m, readAt: m.readAt ?? null }));
   const partnerId = Object.keys(readState).find((id) => id !== myUserId);
   return messages.map((m) => {

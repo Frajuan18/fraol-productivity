@@ -32,7 +32,10 @@ export async function POST(request: Request) {
   const displayName = sanitizeDisplayName(typeof body.displayName === 'string' ? body.displayName : '');
 
   if (!isValidEmail(email)) {
-    return NextResponse.json({ ok: false, error: 'Enter a valid email address.', code: 'INVALID_EMAIL' }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: 'Enter a valid email address.', code: 'INVALID_EMAIL' },
+      { status: 400 },
+    );
   }
   if (!isValidPassword(password)) {
     return NextResponse.json(

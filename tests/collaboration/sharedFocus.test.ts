@@ -17,10 +17,7 @@ describe('settlePause', () => {
   it('folds the elapsed pause into totalPausedMs and pushes endsAt out by the same amount', () => {
     const pausedAt = '2026-01-01T10:10:00.000Z';
     const resumeAt = '2026-01-01T10:12:00.000Z';
-    const result = settlePause(
-      { status: 'paused', pausedAt, totalPausedMs: 0, endsAt },
-      Date.parse(resumeAt),
-    );
+    const result = settlePause({ status: 'paused', pausedAt, totalPausedMs: 0, endsAt }, Date.parse(resumeAt));
     expect(result.totalPausedMs).toBe(120_000);
     expect(result.status).toBe('running');
     expect(result.pausedAt).toBeNull();

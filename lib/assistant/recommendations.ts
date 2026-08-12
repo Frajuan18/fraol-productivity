@@ -97,7 +97,12 @@ export function estimateDuration(draft: PlanDraft, signals: HistorySignals): Est
 /** Suggests how many focus sessions and block length a plan should be broken into. */
 export function suggestFocusBlocks(draft: PlanDraft, signals: HistorySignals): PlanRecommendation | null {
   const estimation = estimateDuration(draft, signals);
-  const block = signals.medianSessionMinutes > 0 ? signals.medianSessionMinutes : signals.avgSessionMinutes > 0 ? signals.avgSessionMinutes : DEFAULT_SESSION_MINUTES;
+  const block =
+    signals.medianSessionMinutes > 0
+      ? signals.medianSessionMinutes
+      : signals.avgSessionMinutes > 0
+        ? signals.avgSessionMinutes
+        : DEFAULT_SESSION_MINUTES;
   const blockMinutes = Math.max(15, Math.round(block / 15) * 15);
   const sessions = Math.min(5, Math.max(1, Math.round(estimation.minutes / blockMinutes)));
   const total = sessions * blockMinutes;

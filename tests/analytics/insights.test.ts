@@ -159,9 +159,7 @@ describe('best-day', () => {
 describe('focus-trend', () => {
   it('flags a drop as attention', () => {
     const [a, b, c] = monthlies();
-    const insights = runGenerators(
-      context({ monthlies: [a, b, { ...c, focusMinutes: 300 }] }),
-    );
+    const insights = runGenerators(context({ monthlies: [a, b, { ...c, focusMinutes: 300 }] }));
     const found = insights.find((i) => i.id === 'focus-trend');
     expect(found?.severity).toBe('attention');
     expect(found?.message).toContain('50%');
@@ -170,15 +168,16 @@ describe('focus-trend', () => {
 
 describe('plan-completion', () => {
   it('emits positive when completion is high', () => {
-    const dailies = ['2025-03-03', '2025-03-04', '2025-03-05'].map((date, i) =>
-      dailiesForStreak(1).map((d) => ({
-        ...d,
-        date,
-        plansCompleted: 2,
-        plansPending: i === 0 ? 1 : 0,
-        plansInProgress: 0,
-        planCompletionRate: i === 0 ? 2 / 3 : 1,
-      }))[0],
+    const dailies = ['2025-03-03', '2025-03-04', '2025-03-05'].map(
+      (date, i) =>
+        dailiesForStreak(1).map((d) => ({
+          ...d,
+          date,
+          plansCompleted: 2,
+          plansPending: i === 0 ? 1 : 0,
+          plansInProgress: 0,
+          planCompletionRate: i === 0 ? 2 / 3 : 1,
+        }))[0],
     );
     const insights = runGenerators(context({ dailies }));
     const found = insights.find((i) => i.id === 'plan-completion');

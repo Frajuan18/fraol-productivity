@@ -15,10 +15,7 @@ type GridFsChunkDoc = Document & { files_id: string; n: number; data: { buffer: 
  * Authorised media endpoint for shared snapshots. Only a member of the snapshot's
  * conversation may read the bytes; the binary is never exposed by guessing a media id.
  */
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ mediaId: string }> },
-): Promise<Response> {
+export async function GET(_request: Request, { params }: { params: Promise<{ mediaId: string }> }): Promise<Response> {
   const { mediaId } = await params;
   const userId = await getRequestUserId(_request);
   if (!userId) return NextResponse.json({ ok: false, error: 'Authentication required.' }, { status: 401 });

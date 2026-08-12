@@ -182,15 +182,5 @@ export function useDashboardData({ sessions, plans, user, analytics }: UseDashbo
       insights,
       analytics,
     };
-  }, [
-    sessions,
-    plans,
-    user,
-    signals,
-    signalsLoading,
-    signalsError,
-    refresh,
-    stats,
-    analytics,
-  ]);
+  }, [sessions, plans, user, signals, signalsLoading, signalsError, refresh, stats, analytics]);
 }

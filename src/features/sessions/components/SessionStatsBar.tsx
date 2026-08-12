@@ -14,10 +14,7 @@ interface SessionStatsBarProps {
   onFilterStatus?: (filter: SessionStatusFilter) => void;
 }
 
-export const SessionStatsBar = memo(function SessionStatsBar({
-  sessions,
-  onFilterStatus,
-}: SessionStatsBarProps) {
+export const SessionStatsBar = memo(function SessionStatsBar({ sessions, onFilterStatus }: SessionStatsBarProps) {
   const stats = useStatistics(sessions, []);
   const { sessionCounts, successRate } = stats;
   const weekStart = getWeekStart();

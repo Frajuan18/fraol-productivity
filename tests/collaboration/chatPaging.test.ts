@@ -22,7 +22,11 @@ function message(id: string, createdAt: string): Message {
 
 describe('buildMessagePage', () => {
   it('returns the newest page oldest-first with a cursor when more exist', () => {
-    const newestFirst = [message('m3', '2026-01-03T00:00:00.000Z'), message('m2', '2026-01-02T00:00:00.000Z'), message('m1', '2026-01-01T00:00:00.000Z')];
+    const newestFirst = [
+      message('m3', '2026-01-03T00:00:00.000Z'),
+      message('m2', '2026-01-02T00:00:00.000Z'),
+      message('m1', '2026-01-01T00:00:00.000Z'),
+    ];
     const page = buildMessagePage(newestFirst, 2);
     expect(page.items.map((m) => m.id)).toEqual(['m2', 'm3']);
     expect(page.hasOlder).toBe(true);
@@ -37,7 +41,10 @@ describe('buildMessagePage', () => {
   });
 
   it('treats a limit-sized page as exhausted', () => {
-    const page = buildMessagePage([message('m2', '2026-01-02T00:00:00.000Z'), message('m1', '2026-01-01T00:00:00.000Z')], 2);
+    const page = buildMessagePage(
+      [message('m2', '2026-01-02T00:00:00.000Z'), message('m1', '2026-01-01T00:00:00.000Z')],
+      2,
+    );
     expect(page.hasOlder).toBe(false);
     expect(page.nextCursor).toBeNull();
   });
@@ -52,7 +59,10 @@ describe('messageBeforeCursor', () => {
 
 describe('sortMessagesOldestFirst', () => {
   it('sorts chronologically', () => {
-    const sorted = sortMessagesOldestFirst([message('b', '2026-01-02T00:00:00.000Z'), message('a', '2026-01-01T00:00:00.000Z')]);
+    const sorted = sortMessagesOldestFirst([
+      message('b', '2026-01-02T00:00:00.000Z'),
+      message('a', '2026-01-01T00:00:00.000Z'),
+    ]);
     expect(sorted.map((m) => m.id)).toEqual(['a', 'b']);
   });
 });

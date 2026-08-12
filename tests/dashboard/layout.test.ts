@@ -15,11 +15,7 @@ import {
   widgetCount,
   visibleWidgetCount,
 } from '@/lib/dashboard/layout';
-import {
-  DASHBOARD_WIDGET_IDS,
-  WIDGET_META,
-  type DashboardLayout,
-} from '@/lib/dashboard/types';
+import { DASHBOARD_WIDGET_IDS, WIDGET_META, type DashboardLayout } from '@/lib/dashboard/types';
 
 describe('createDefaultLayout', () => {
   it('contains every registered widget, visible and expanded', () => {
@@ -111,7 +107,10 @@ describe('reorderWidgets', () => {
       version: 1,
       widgets: layout.widgets.map((w) => (w.id === 'quick-actions' ? { ...w, visible: false } : w)),
     });
-    const reversedVisible = hidden.widgets.filter((w) => w.visible).map((w) => w.id).reverse();
+    const reversedVisible = hidden.widgets
+      .filter((w) => w.visible)
+      .map((w) => w.id)
+      .reverse();
     const ordered = reorderWidgets(hidden, reversedVisible);
     expect(ordered.widgets.map((w) => w.id)).toEqual([...reversedVisible, 'quick-actions']);
     expect(ordered.widgets[ordered.widgets.length - 1].visible).toBe(false);

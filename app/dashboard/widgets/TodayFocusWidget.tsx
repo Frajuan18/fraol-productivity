@@ -7,7 +7,8 @@ import type { DashboardWidgetProps } from './types';
 
 export default function TodayFocusWidget({ bundle }: DashboardWidgetProps) {
   const reduced = useReducedMotion();
-  const { todayMinutes, todayDisplay, todayCount, todayCompleted, goalMinutes, goalSource, stats, consistencyScore } = bundle;
+  const { todayMinutes, todayDisplay, todayCount, todayCompleted, goalMinutes, goalSource, stats, consistencyScore } =
+    bundle;
 
   const pct = goalMinutes > 0 ? Math.min(100, (todayMinutes / goalMinutes) * 100) : 0;
   const radius = 64;

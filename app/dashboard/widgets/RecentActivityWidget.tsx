@@ -41,7 +41,9 @@ export default function RecentActivityWidget({ bundle, onNavigateTab }: Dashboar
                   {session.startTime ? ` · ${session.startTime}` : ''}
                 </span>
               </button>
-              <span className={`shrink-0 text-[10px] px-2 py-0.5 rounded-full ${isCompleted ? 'bg-success/10 text-success' : isProgress ? 'bg-warning/10 text-warning' : 'bg-danger/10 text-danger'}`}>
+              <span
+                className={`shrink-0 text-[10px] px-2 py-0.5 rounded-full ${isCompleted ? 'bg-success/10 text-success' : isProgress ? 'bg-warning/10 text-warning' : 'bg-danger/10 text-danger'}`}
+              >
                 {session.status}
               </span>
             </li>

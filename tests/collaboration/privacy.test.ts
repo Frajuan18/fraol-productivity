@@ -47,12 +47,27 @@ describe('maskFocusStatus', () => {
 
 describe('privacySummary', () => {
   it('reports shared when all toggles are on', () => {
-    const summary = privacySummary({ shareWeeklyStats: true, shareStreak: true, shareLiveFocus: true, shareSnapshots: true });
-    expect(summary).toEqual({ statistics: 'shared', focusStatus: 'shared', recentActivity: 'shared', snapshots: 'shared' });
+    const summary = privacySummary({
+      shareWeeklyStats: true,
+      shareStreak: true,
+      shareLiveFocus: true,
+      shareSnapshots: true,
+    });
+    expect(summary).toEqual({
+      statistics: 'shared',
+      focusStatus: 'shared',
+      recentActivity: 'shared',
+      snapshots: 'shared',
+    });
   });
 
   it('reports private per toggle', () => {
-    const summary = privacySummary({ shareWeeklyStats: false, shareStreak: true, shareLiveFocus: false, shareSnapshots: false });
+    const summary = privacySummary({
+      shareWeeklyStats: false,
+      shareStreak: true,
+      shareLiveFocus: false,
+      shareSnapshots: false,
+    });
     expect(summary.statistics).toBe('private');
     expect(summary.recentActivity).toBe('shared');
     expect(summary.focusStatus).toBe('private');
@@ -61,6 +76,11 @@ describe('privacySummary', () => {
 
   it('defaults to shared for missing settings', () => {
     const summary = privacySummary(null);
-    expect(summary).toEqual({ statistics: 'shared', focusStatus: 'shared', recentActivity: 'shared', snapshots: 'shared' });
+    expect(summary).toEqual({
+      statistics: 'shared',
+      focusStatus: 'shared',
+      recentActivity: 'shared',
+      snapshots: 'shared',
+    });
   });
 });

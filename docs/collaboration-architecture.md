@@ -21,15 +21,15 @@ Current state (verified in this repo):
 
 Concrete blockers for two users:
 
-| Limitation | Why it blocks collaboration |
-| --- | --- |
-| Single-user file | Two clients overwrite each other's writes — last-write-wins destroys the partner's data. |
-| Full-blob read/write | No row-level updates; every save rewrites everything (race conditions, wasted bandwidth). |
-| No identity | No way to know *who* is writing; cannot attribute plans/sessions/messages to a user. |
-| No concurrency control | Debounced full-document saves make optimistic locking impossible. |
-| No push channel | Presence, typing indicators, shared timers, and live chat require a realtime layer. |
-| No query layer | "Give me my partner's last 30 days of stats" would require parsing JSON in memory. |
-| No ACL | Anything that can reach `/api/data` can read and write everything. |
+| Limitation             | Why it blocks collaboration                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------------- |
+| Single-user file       | Two clients overwrite each other's writes — last-write-wins destroys the partner's data.  |
+| Full-blob read/write   | No row-level updates; every save rewrites everything (race conditions, wasted bandwidth). |
+| No identity            | No way to know _who_ is writing; cannot attribute plans/sessions/messages to a user.      |
+| No concurrency control | Debounced full-document saves make optimistic locking impossible.                         |
+| No push channel        | Presence, typing indicators, shared timers, and live chat require a realtime layer.       |
+| No query layer         | "Give me my partner's last 30 days of stats" would require parsing JSON in memory.        |
+| No ACL                 | Anything that can reach `/api/data` can read and write everything.                        |
 
 The JSON store is not thrown away — it becomes the **local-first seed** for the migration
 (Phase C) and the **offline/cache layer** (Phase F).
@@ -87,16 +87,16 @@ The JSON store is not thrown away — it becomes the **local-first seed** for th
 
 ## 3. Why Supabase (vs Firebase, Appwrite, or a custom backend)
 
-| Concern | Supabase (chosen) | Firebase | Appwrite | Custom Node/Express |
-| --- | --- | --- | --- | --- |
-| Data model | Real PostgreSQL — tables, FKs, constraints, indexes | Firestore document store | PostgreSQL (works, but smaller ecosystem) | Full control, full burden |
-| Auth | Supabase Auth (JWTs, built-in) | Firebase Auth (excellent) | Appwrite Auth | Build it yourself |
-| Realtime | WebSocket channels via Postgres `LISTEN/NOTIFY` | Firestore realtime listeners | Realtime API | Build it yourself |
-| RLS / row security | Native Postgres RLS — industry standard | Custom security rules | Document-level permissions | Hand-rolled middleware |
-| Sync focus timer | Server timestamp + Postgres rows (authoritative) | Client timestamps (drift-prone) | Server time | Manual |
-| Files/media | Supabase Storage (S3-backed) | Firebase Storage | Appwrite Storage | Manual S3 |
-| Migrations | SQL migrations committed to repo | No SQL concept | SQL migrations | SQL migrations |
-| Next.js integration | `@supabase/ssr` official, first-class | `firebase/auth` works, heavier | Community SDK | N/A |
+| Concern             | Supabase (chosen)                                   | Firebase                        | Appwrite                                  | Custom Node/Express       |
+| ------------------- | --------------------------------------------------- | ------------------------------- | ----------------------------------------- | ------------------------- |
+| Data model          | Real PostgreSQL — tables, FKs, constraints, indexes | Firestore document store        | PostgreSQL (works, but smaller ecosystem) | Full control, full burden |
+| Auth                | Supabase Auth (JWTs, built-in)                      | Firebase Auth (excellent)       | Appwrite Auth                             | Build it yourself         |
+| Realtime            | WebSocket channels via Postgres `LISTEN/NOTIFY`     | Firestore realtime listeners    | Realtime API                              | Build it yourself         |
+| RLS / row security  | Native Postgres RLS — industry standard             | Custom security rules           | Document-level permissions                | Hand-rolled middleware    |
+| Sync focus timer    | Server timestamp + Postgres rows (authoritative)    | Client timestamps (drift-prone) | Server time                               | Manual                    |
+| Files/media         | Supabase Storage (S3-backed)                        | Firebase Storage                | Appwrite Storage                          | Manual S3                 |
+| Migrations          | SQL migrations committed to repo                    | No SQL concept                  | SQL migrations                            | SQL migrations            |
+| Next.js integration | `@supabase/ssr` official, first-class               | `firebase/auth` works, heavier  | Community SDK                             | N/A                       |
 
 **Decision**: Supabase. It gives real relational SQL + RLS + realtime in one managed stack with
 official Next.js support, matching the app's need for server-authoritative shared timers and
@@ -137,6 +137,7 @@ Drive is kept **only** as an optional long-term archive (Section 11), never for 
 ```
 
 Rules (from spec, confirmed):
+
 1. Create `storage/backups/` before anything runs.
 2. Copy `data.json` → `data-before-cloud-migration.json` **first**, then run.
 3. Every migrated row keeps its original `id` and all original timestamps where the schema
@@ -153,181 +154,197 @@ Rules (from spec, confirmed):
 Naming: `snake_case`, UUID primary keys, `timestamptz` timestamps, soft-deletes where noted.
 
 ### profiles
-| column | type | notes |
-| --- | --- | --- |
-| id | uuid PK | = `auth.users.id` |
-| display_name | text | from legacy `user.name` |
-| email | text | from auth |
-| avatar_url | text null | |
-| status | text | `online\|offline\|focusing` (presence) |
-| last_seen_at | timestamptz | |
-| legacy_user_name | text null | pre-migration name |
-| created_at / updated_at | timestamptz | |
 
-### plans  (shared — one row, no per-user copies)
-| column | type | notes |
-| --- | --- | --- |
-| id | uuid PK | |
-| title | text | |
-| description | text | preserves `Sessions:` block convention |
-| type | text | `weekly\|daily\|custom` (legacy enum) |
-| status | text | `active\|completed\|paused` |
-| date | date | |
-| priority | text | `high\|medium\|low` |
-| category | text | e.g. `Study` |
-| owner_id | uuid FK → profiles | creator |
-| file_id | uuid null FK → plan_files | optional uploaded file |
-| legacy_id | int null | original `plans[].id` |
-| created_at / updated_at | timestamptz | |
+| column                  | type        | notes                                  |
+| ----------------------- | ----------- | -------------------------------------- |
+| id                      | uuid PK     | = `auth.users.id`                      |
+| display_name            | text        | from legacy `user.name`                |
+| email                   | text        | from auth                              |
+| avatar_url              | text null   |                                        |
+| status                  | text        | `online\|offline\|focusing` (presence) |
+| last_seen_at            | timestamptz |                                        |
+| legacy_user_name        | text null   | pre-migration name                     |
+| created_at / updated_at | timestamptz |                                        |
+
+### plans (shared — one row, no per-user copies)
+
+| column                  | type                      | notes                                  |
+| ----------------------- | ------------------------- | -------------------------------------- |
+| id                      | uuid PK                   |                                        |
+| title                   | text                      |                                        |
+| description             | text                      | preserves `Sessions:` block convention |
+| type                    | text                      | `weekly\|daily\|custom` (legacy enum)  |
+| status                  | text                      | `active\|completed\|paused`            |
+| date                    | date                      |                                        |
+| priority                | text                      | `high\|medium\|low`                    |
+| category                | text                      | e.g. `Study`                           |
+| owner_id                | uuid FK → profiles        | creator                                |
+| file_id                 | uuid null FK → plan_files | optional uploaded file                 |
+| legacy_id               | int null                  | original `plans[].id`                  |
+| created_at / updated_at | timestamptz               |                                        |
 
 ### plan_files
-| column | type | notes |
-| --- | --- | --- |
-| id | uuid PK | |
-| plan_id | uuid FK → plans | |
-| original_name | text | |
-| storage_path | text | Supabase Storage path |
-| mime_type | text | |
-| size | bigint | ≤ 25 MB enforced |
-| page_count | int null | |
-| uploaded_by | uuid FK → profiles | |
-| created_at | timestamptz | |
+
+| column        | type               | notes                 |
+| ------------- | ------------------ | --------------------- |
+| id            | uuid PK            |                       |
+| plan_id       | uuid FK → plans    |                       |
+| original_name | text               |                       |
+| storage_path  | text               | Supabase Storage path |
+| mime_type     | text               |                       |
+| size          | bigint             | ≤ 25 MB enforced      |
+| page_count    | int null           |                       |
+| uploaded_by   | uuid FK → profiles |                       |
+| created_at    | timestamptz        |                       |
 
 ### plan_members
-| column | type | notes |
-| --- | --- | --- |
-| plan_id | uuid FK → plans | composite PK |
-| user_id | uuid FK → profiles | composite PK |
-| role | text | `owner\|member` |
-| joined_at | timestamptz | |
+
+| column    | type               | notes           |
+| --------- | ------------------ | --------------- |
+| plan_id   | uuid FK → plans    | composite PK    |
+| user_id   | uuid FK → profiles | composite PK    |
+| role      | text               | `owner\|member` |
+| joined_at | timestamptz        |                 |
 
 ### plan_activity
-| column | type | notes |
-| --- | --- | --- |
-| id | bigint identity PK | |
-| plan_id | uuid FK → plans | |
-| user_id | uuid FK → profiles | |
-| action | text | `created\|status_changed\|file_added\|member_added\|commented` |
-| payload | jsonb | |
-| created_at | timestamptz | |
 
-### focus_sessions  (legacy + cloud sessions)
-| column | type | notes |
-| --- | --- | --- |
-| id | uuid PK | |
-| user_id | uuid FK → profiles | |
-| task | text | legacy `session.task` |
-| duration | text | legacy `HHh MMm` string (kept for compat) |
-| duration_minutes | int | derived for stats |
-| date | date | legacy `YYYY-MM-DD` |
-| status | text | `completed\|cancelled` |
-| shared_session_id | uuid null FK → shared_focus_sessions | |
-| legacy_id | int null | |
-| created_at | timestamptz | |
+| column     | type               | notes                                                          |
+| ---------- | ------------------ | -------------------------------------------------------------- |
+| id         | bigint identity PK |                                                                |
+| plan_id    | uuid FK → plans    |                                                                |
+| user_id    | uuid FK → profiles |                                                                |
+| action     | text               | `created\|status_changed\|file_added\|member_added\|commented` |
+| payload    | jsonb              |                                                                |
+| created_at | timestamptz        |                                                                |
 
-### daily_statistics  (cached/denormalized stats)
-| column | type | notes |
-| --- | --- | --- |
-| user_id | uuid FK → profiles | composite PK with date |
-| date | date | |
-| focus_minutes | int | |
-| sessions_completed | int | |
-| plans_completed | int | |
-| updated_at | timestamptz | |
+### focus_sessions (legacy + cloud sessions)
+
+| column            | type                                 | notes                                     |
+| ----------------- | ------------------------------------ | ----------------------------------------- |
+| id                | uuid PK                              |                                           |
+| user_id           | uuid FK → profiles                   |                                           |
+| task              | text                                 | legacy `session.task`                     |
+| duration          | text                                 | legacy `HHh MMm` string (kept for compat) |
+| duration_minutes  | int                                  | derived for stats                         |
+| date              | date                                 | legacy `YYYY-MM-DD`                       |
+| status            | text                                 | `completed\|cancelled`                    |
+| shared_session_id | uuid null FK → shared_focus_sessions |                                           |
+| legacy_id         | int null                             |                                           |
+| created_at        | timestamptz                          |                                           |
+
+### daily_statistics (cached/denormalized stats)
+
+| column             | type               | notes                  |
+| ------------------ | ------------------ | ---------------------- |
+| user_id            | uuid FK → profiles | composite PK with date |
+| date               | date               |                        |
+| focus_minutes      | int                |                        |
+| sessions_completed | int                |                        |
+| plans_completed    | int                |                        |
+| updated_at         | timestamptz        |                        |
 
 ### partnerships
-| column | type | notes |
-| --- | --- | --- |
-| id | uuid PK | |
-| user_a_id | uuid FK → profiles | normalized: `user_a_id < user_b_id` |
-| user_b_id | uuid FK → profiles | |
-| status | text | `pending\|active\|paused\|ended` |
-| created_at / updated_at | timestamptz | |
-| UNIQUE (user_a_id, user_b_id) | | prevents duplicate pairings |
+
+| column                        | type               | notes                               |
+| ----------------------------- | ------------------ | ----------------------------------- |
+| id                            | uuid PK            |                                     |
+| user_a_id                     | uuid FK → profiles | normalized: `user_a_id < user_b_id` |
+| user_b_id                     | uuid FK → profiles |                                     |
+| status                        | text               | `pending\|active\|paused\|ended`    |
+| created_at / updated_at       | timestamptz        |                                     |
+| UNIQUE (user_a_id, user_b_id) |                    | prevents duplicate pairings         |
 
 ### partner_privacy_settings
-| column | type | notes |
-| --- | --- | --- |
-| id | uuid PK | |
-| user_id | uuid FK → profiles | |
-| share_weekly_stats | boolean default true | |
-| share_streak | boolean default true | |
-| share_plans | boolean default true | |
-| share_live_focus | boolean default true | |
-| share_location | boolean default false | reserved; default off |
-| updated_at | timestamptz | |
+
+| column             | type                  | notes                 |
+| ------------------ | --------------------- | --------------------- |
+| id                 | uuid PK               |                       |
+| user_id            | uuid FK → profiles    |                       |
+| share_weekly_stats | boolean default true  |                       |
+| share_streak       | boolean default true  |                       |
+| share_plans        | boolean default true  |                       |
+| share_live_focus   | boolean default true  |                       |
+| share_location     | boolean default false | reserved; default off |
+| updated_at         | timestamptz           |                       |
 
 ### shared_focus_sessions
-| column | type | notes |
-| --- | --- | --- |
-| id | uuid PK | |
-| partnership_id | uuid FK → partnerships | |
-| status | text | `pending\|running\|paused\|ended` |
-| duration_minutes | int | planned length |
-| started_at | timestamptz | server-set |
-| paused_at | timestamptz null | |
-| total_paused_ms | bigint | accumulated pauses |
-| ends_at | timestamptz | server-authoritative: `started_at + duration` |
-| created_by | uuid FK → profiles | |
-| created_at | timestamptz | |
+
+| column           | type                   | notes                                         |
+| ---------------- | ---------------------- | --------------------------------------------- |
+| id               | uuid PK                |                                               |
+| partnership_id   | uuid FK → partnerships |                                               |
+| status           | text                   | `pending\|running\|paused\|ended`             |
+| duration_minutes | int                    | planned length                                |
+| started_at       | timestamptz            | server-set                                    |
+| paused_at        | timestamptz null       |                                               |
+| total_paused_ms  | bigint                 | accumulated pauses                            |
+| ends_at          | timestamptz            | server-authoritative: `started_at + duration` |
+| created_by       | uuid FK → profiles     |                                               |
+| created_at       | timestamptz            |                                               |
 
 ### shared_focus_participants
-| column | type | notes |
-| --- | --- | --- |
+
+| column     | type                            | notes        |
+| ---------- | ------------------------------- | ------------ |
 | session_id | uuid FK → shared_focus_sessions | composite PK |
-| user_id | uuid FK → profiles | composite PK |
-| joined_at | timestamptz | |
-| ended_at | timestamptz null | |
-| completed | boolean | |
+| user_id    | uuid FK → profiles              | composite PK |
+| joined_at  | timestamptz                     |              |
+| ended_at   | timestamptz null                |              |
+| completed  | boolean                         |              |
 
 ### conversations
-| column | type | notes |
-| --- | --- | --- |
-| id | uuid PK | |
-| partnership_id | uuid FK → partnerships | |
-| type | text | `partner_dm` (one per partnership) |
-| created_at | timestamptz | |
-| UNIQUE (partnership_id) | | one DM per partnership |
+
+| column                  | type                   | notes                              |
+| ----------------------- | ---------------------- | ---------------------------------- |
+| id                      | uuid PK                |                                    |
+| partnership_id          | uuid FK → partnerships |                                    |
+| type                    | text                   | `partner_dm` (one per partnership) |
+| created_at              | timestamptz            |                                    |
+| UNIQUE (partnership_id) |                        | one DM per partnership             |
 
 ### messages
-| column | type | notes |
-| --- | --- | --- |
-| id | uuid PK | |
-| conversation_id | uuid FK → conversations | |
-| sender_id | uuid FK → profiles | |
-| type | text | `text\|image\|plan_reference\|focus_session_reference\|system` |
-| body | text null | text payload |
-| media_path | text null | Supabase Storage path for `image` |
-| media_mime / media_size | text / bigint null | |
-| plan_id / shared_session_id | uuid null | for reference types |
-| reply_to_id | uuid null | |
-| read_at | timestamptz null | read receipt |
-| created_at | timestamptz | |
-| INDEX (conversation_id, created_at) | | chat pagination |
-| INDEX (conversation_id, read_at) | | unread counts |
+
+| column                              | type                    | notes                                                          |
+| ----------------------------------- | ----------------------- | -------------------------------------------------------------- |
+| id                                  | uuid PK                 |                                                                |
+| conversation_id                     | uuid FK → conversations |                                                                |
+| sender_id                           | uuid FK → profiles      |                                                                |
+| type                                | text                    | `text\|image\|plan_reference\|focus_session_reference\|system` |
+| body                                | text null               | text payload                                                   |
+| media_path                          | text null               | Supabase Storage path for `image`                              |
+| media_mime / media_size             | text / bigint null      |                                                                |
+| plan_id / shared_session_id         | uuid null               | for reference types                                            |
+| reply_to_id                         | uuid null               |                                                                |
+| read_at                             | timestamptz null        | read receipt                                                   |
+| created_at                          | timestamptz             |                                                                |
+| INDEX (conversation_id, created_at) |                         | chat pagination                                                |
+| INDEX (conversation_id, read_at)    |                         | unread counts                                                  |
 
 ### chat_presence / typing (ephemeral — not a table)
+
 - Realtime broadcast channel payloads only; never persisted.
 
-### drive_archives  (bookkeeping for the optional Drive export)
-| column | type | notes |
-| --- | --- | --- |
-| id | uuid PK | |
-| conversation_id | uuid FK → conversations | |
-| period | text | `YYYY-MM` |
-| drive_file_id | text | Google Drive file id |
-| message_count | int | |
-| source_checksum | text | dedupe |
-| archived_at | timestamptz | |
+### drive_archives (bookkeeping for the optional Drive export)
+
+| column          | type                    | notes                |
+| --------------- | ----------------------- | -------------------- |
+| id              | uuid PK                 |                      |
+| conversation_id | uuid FK → conversations |                      |
+| period          | text                    | `YYYY-MM`            |
+| drive_file_id   | text                    | Google Drive file id |
+| message_count   | int                     |                      |
+| source_checksum | text                    | dedupe               |
+| archived_at     | timestamptz             |                      |
 
 ### migration_version
-| column | type | notes |
-| --- | --- | --- |
-| id | int PK | version |
-| migration_name | text | `local-json-to-supabase` |
-| source_checksum | text | sha256 of `data.json` |
-| completed_at | timestamptz | |
-| row_counts | jsonb | users/plans/sessions/files migrated |
+
+| column          | type        | notes                               |
+| --------------- | ----------- | ----------------------------------- |
+| id              | int PK      | version                             |
+| migration_name  | text        | `local-json-to-supabase`            |
+| source_checksum | text        | sha256 of `data.json`               |
+| completed_at    | timestamptz |                                     |
+| row_counts      | jsonb       | users/plans/sessions/files migrated |
 
 ---
 
@@ -336,25 +353,26 @@ Naming: `snake_case`, UUID primary keys, `timestamptz` timestamps, soft-deletes 
 Principle: **deny by default**; grant only to `auth.uid()` (the signed-in user) and the partner
 where the partnership is `active`.
 
-| table | policy | scope |
-| --- | --- | --- |
-| profiles | SELECT own row + partner's row (via active partnership) | read |
-| profiles | UPDATE own row only | write |
-| plans | SELECT if member of `plan_members`; UPDATE/DELETE if owner | read/write |
-| plan_files | SELECT if member of the plan; INSERT if member | read/write |
-| plan_members | SELECT if own membership; INSERT if inviting own partner | read/write |
-| plan_activity | SELECT if member of plan; INSERT if member | read/write |
-| focus_sessions | SELECT/INSERT/DELETE own rows only | read/write |
-| daily_statistics | SELECT own + partner's (respecting `partner_privacy_settings.share_weekly_stats`) | read |
-| partnerships | SELECT where user is A or B; UPDATE own side's status | read/write |
-| partner_privacy_settings | SELECT own + partner's (partner must be able to know what's shared) | read |
-| shared_focus_sessions | SELECT if participant; UPDATE if participant | read/write |
-| shared_focus_participants | SELECT/INSERT if participant of the session | read/write |
-| conversations | SELECT/INSERT if member of the partnership | read/write |
-| messages | SELECT/INSERT if member of conversation; UPDATE `read_at` own-sender only | read/write |
-| drive_archives | SELECT own partnership's archives | read |
+| table                     | policy                                                                            | scope      |
+| ------------------------- | --------------------------------------------------------------------------------- | ---------- |
+| profiles                  | SELECT own row + partner's row (via active partnership)                           | read       |
+| profiles                  | UPDATE own row only                                                               | write      |
+| plans                     | SELECT if member of `plan_members`; UPDATE/DELETE if owner                        | read/write |
+| plan_files                | SELECT if member of the plan; INSERT if member                                    | read/write |
+| plan_members              | SELECT if own membership; INSERT if inviting own partner                          | read/write |
+| plan_activity             | SELECT if member of plan; INSERT if member                                        | read/write |
+| focus_sessions            | SELECT/INSERT/DELETE own rows only                                                | read/write |
+| daily_statistics          | SELECT own + partner's (respecting `partner_privacy_settings.share_weekly_stats`) | read       |
+| partnerships              | SELECT where user is A or B; UPDATE own side's status                             | read/write |
+| partner_privacy_settings  | SELECT own + partner's (partner must be able to know what's shared)               | read       |
+| shared_focus_sessions     | SELECT if participant; UPDATE if participant                                      | read/write |
+| shared_focus_participants | SELECT/INSERT if participant of the session                                       | read/write |
+| conversations             | SELECT/INSERT if member of the partnership                                        | read/write |
+| messages                  | SELECT/INSERT if member of conversation; UPDATE `read_at` own-sender only         | read/write |
+| drive_archives            | SELECT own partnership's archives                                                 | read       |
 
 Implementation notes:
+
 - RLS helper function `is_partner_of(current_uid, other_uid)`:
   checks `partnerships` for `status = 'active'` and membership in either column.
 - Service role bypasses RLS (used only by the migration runner and the Drive archiver).
@@ -490,6 +508,7 @@ Productivity Collaboration/
 ## 12. Webcam photo storage design
 
 Flow:
+
 ```
  1. Permission  → getUserMedia({video:true}) after explicit consent + permission rationale
  2. Preview     → <video> element preview (never uploaded raw)
@@ -577,14 +596,14 @@ class RepositoryFactory {
 
 ## 14. Phased delivery plan
 
-| Phase | Goal | Deliverable | Exit criteria |
-| --- | --- | --- | --- |
-| A | Local-first foundation | `ProductivityRepository` interface + `LocalJsonProductivityRepository` wrapping existing `dataService`/`planFileApi`; hooks rerouted through it | 85/85 tests green, build green, zero behavior change |
-| B | Cloud connect (parallel) | Supabase project + schema migration SQL + `@supabase/supabase-js`, `@supabase/ssr`; Auth (email/password) wired; repository interface satisfied by a `SupabaseProductivityRepository` **behind a feature flag** | Sign-up/sign-in works in dev; schema applies; `next build` green |
-| C | Migrate data | `scripts/migrate-local-to-supabase.ts` (backup → validate → upsert → `migration_version` → report); runs against service role | Report: Users 1, Plans 12, Sessions 34, Errors 0; idempotent re-run no-op; `data.json` intact |
-| D | Cloud read | App reads via Supabase repository; local JSON remains the cache fallback | Dashboard, plans, sessions render from Postgres; offline fallback still works |
-| E | Cloud write + realtime | All writes go through Supabase; Realtime channels for chat, presence, shared focus | Two browsers stay in sync live; shared timer keeps ~1 s parity |
-| F | Cache + archive | IndexedDB cache layer + Drive monthly archiver + `drive_archives` bookkeeping | Cache serves reads on reconnect; archives dedupe correctly |
+| Phase | Goal                     | Deliverable                                                                                                                                                                                                     | Exit criteria                                                                                 |
+| ----- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| A     | Local-first foundation   | `ProductivityRepository` interface + `LocalJsonProductivityRepository` wrapping existing `dataService`/`planFileApi`; hooks rerouted through it                                                                 | 85/85 tests green, build green, zero behavior change                                          |
+| B     | Cloud connect (parallel) | Supabase project + schema migration SQL + `@supabase/supabase-js`, `@supabase/ssr`; Auth (email/password) wired; repository interface satisfied by a `SupabaseProductivityRepository` **behind a feature flag** | Sign-up/sign-in works in dev; schema applies; `next build` green                              |
+| C     | Migrate data             | `scripts/migrate-local-to-supabase.ts` (backup → validate → upsert → `migration_version` → report); runs against service role                                                                                   | Report: Users 1, Plans 12, Sessions 34, Errors 0; idempotent re-run no-op; `data.json` intact |
+| D     | Cloud read               | App reads via Supabase repository; local JSON remains the cache fallback                                                                                                                                        | Dashboard, plans, sessions render from Postgres; offline fallback still works                 |
+| E     | Cloud write + realtime   | All writes go through Supabase; Realtime channels for chat, presence, shared focus                                                                                                                              | Two browsers stay in sync live; shared timer keeps ~1 s parity                                |
+| F     | Cache + archive          | IndexedDB cache layer + Drive monthly archiver + `drive_archives` bookkeeping                                                                                                                                   | Cache serves reads on reconnect; archives dedupe correctly                                    |
 
 Each phase ships independently and is reversible (see Section 15).
 
@@ -649,6 +668,7 @@ NEXT_PUBLIC_CHAT_ENABLED=true                # chat toggle
 ```
 
 Rules:
+
 - `SUPABASE_SERVICE_ROLE_KEY` is referenced **only** in Route Handlers and the migration script —
   never in `src/` client code, never exposed through `NEXT_PUBLIC_`.
 - Access via `process.env` at runtime; the migration script reads the same `.env.local`.
@@ -659,11 +679,13 @@ Rules:
 ## 18. Dependencies
 
 Runtime (add to `package.json`):
+
 - `@supabase/supabase-js` — client + server SDK (Postgres REST, realtime, storage, auth).
 - `@supabase/ssr` — Next.js App Router auth cookie helpers (official, required by Next 16 conventions).
 - `googleapis` — Drive archive (server-side only).
 
 Dev/scripts:
+
 - `tsx` — run `scripts/migrate-local-to-supabase.ts`.
 - `@types/mime-types` or `mime-types` — media type guard for uploads (optional; can reuse existing
   magic-number checks in `lib/plans/files.ts`).
@@ -676,44 +698,46 @@ stay as-is. Nothing in the current runtime deps is removed.
 ## 19. API / realtime event catalogue
 
 ### REST (Route Handlers — all auth-gated, service role only server-side)
-| Method | Path | Purpose |
-| --- | --- | --- |
-| POST | `/api/auth/signup` | create user + profile |
-| POST | `/api/auth/signin` | email/password sign-in |
-| POST | `/api/auth/signout` | clear session |
-| GET | `/api/profile` | own profile |
-| PATCH | `/api/profile` | update own profile |
-| GET | `/api/partner` | partner profile + presence + stats (privacy-filtered) |
-| PATCH | `/api/privacy` | update `partner_privacy_settings` |
-| GET/POST | `/api/data` | retained: local cache fallback (Phase A/D) |
-| GET | `/api/plans` | list my shared plans |
-| POST | `/api/plans` | create plan |
-| GET/PATCH/DELETE | `/api/plans/:id` | plan detail/update/delete |
-| POST | `/api/plans/:id/members` | invite partner |
-| GET/POST | `/api/plans/:id/activity` | activity feed |
-| POST | `/api/plans/:planId/file` | plan file upload (existing route, re-targeted) |
-| GET | `/api/plans/:planId/file` | signed file URL (existing route, re-targeted) |
-| GET | `/api/sessions` | my sessions |
-| POST | `/api/sessions` | add completed/cancelled session |
-| GET | `/api/stats` | my aggregated stats |
-| POST | `/api/shared-focus` | start shared session |
-| POST | `/api/shared-focus/:id/join` | join |
-| POST | `/api/shared-focus/:id/pause` | pause (server re-computes `ends_at`) |
-| POST | `/api/shared-focus/:id/resume` | resume |
-| POST | `/api/shared-focus/:id/complete` | complete + emit `focus_sessions` |
-| GET | `/api/conversations/:id/messages?cursor=` | paginated history |
-| POST | `/api/conversations/:id/messages` | send message (text/image/reference) |
-| POST | `/api/conversations/:id/read` | mark read (sets `read_at`) |
-| GET | `/api/chat/media/:messageId` | signed media URL |
-| POST | `/api/archive/drive/run` | trigger monthly Drive archive (admin/optional) |
+
+| Method           | Path                                      | Purpose                                               |
+| ---------------- | ----------------------------------------- | ----------------------------------------------------- |
+| POST             | `/api/auth/signup`                        | create user + profile                                 |
+| POST             | `/api/auth/signin`                        | email/password sign-in                                |
+| POST             | `/api/auth/signout`                       | clear session                                         |
+| GET              | `/api/profile`                            | own profile                                           |
+| PATCH            | `/api/profile`                            | update own profile                                    |
+| GET              | `/api/partner`                            | partner profile + presence + stats (privacy-filtered) |
+| PATCH            | `/api/privacy`                            | update `partner_privacy_settings`                     |
+| GET/POST         | `/api/data`                               | retained: local cache fallback (Phase A/D)            |
+| GET              | `/api/plans`                              | list my shared plans                                  |
+| POST             | `/api/plans`                              | create plan                                           |
+| GET/PATCH/DELETE | `/api/plans/:id`                          | plan detail/update/delete                             |
+| POST             | `/api/plans/:id/members`                  | invite partner                                        |
+| GET/POST         | `/api/plans/:id/activity`                 | activity feed                                         |
+| POST             | `/api/plans/:planId/file`                 | plan file upload (existing route, re-targeted)        |
+| GET              | `/api/plans/:planId/file`                 | signed file URL (existing route, re-targeted)         |
+| GET              | `/api/sessions`                           | my sessions                                           |
+| POST             | `/api/sessions`                           | add completed/cancelled session                       |
+| GET              | `/api/stats`                              | my aggregated stats                                   |
+| POST             | `/api/shared-focus`                       | start shared session                                  |
+| POST             | `/api/shared-focus/:id/join`              | join                                                  |
+| POST             | `/api/shared-focus/:id/pause`             | pause (server re-computes `ends_at`)                  |
+| POST             | `/api/shared-focus/:id/resume`            | resume                                                |
+| POST             | `/api/shared-focus/:id/complete`          | complete + emit `focus_sessions`                      |
+| GET              | `/api/conversations/:id/messages?cursor=` | paginated history                                     |
+| POST             | `/api/conversations/:id/messages`         | send message (text/image/reference)                   |
+| POST             | `/api/conversations/:id/read`             | mark read (sets `read_at`)                            |
+| GET              | `/api/chat/media/:messageId`              | signed media URL                                      |
+| POST             | `/api/archive/drive/run`                  | trigger monthly Drive archive (admin/optional)        |
 
 ### Realtime channels
-| Channel | Broadcast payloads (ephemeral) | DB sync |
-| --- | --- | --- |
-| `presence:{partnershipId}` | `online/offline/focusing`, `typing`, `seen` | presence table not used |
-| `chat:{conversationId}` | new message, typing, read | `messages` INSERT/UPDATE |
-| `plan:{planId}` | status change, member added, activity | `plans`/`plan_activity` |
-| `focus:{partnershipId}` | `focus_started{ends_at}`, `focus_joined`, `focus_paused{newEndsAt}`, `focus_completed` | `shared_focus_sessions` |
+
+| Channel                    | Broadcast payloads (ephemeral)                                                         | DB sync                  |
+| -------------------------- | -------------------------------------------------------------------------------------- | ------------------------ |
+| `presence:{partnershipId}` | `online/offline/focusing`, `typing`, `seen`                                            | presence table not used  |
+| `chat:{conversationId}`    | new message, typing, read                                                              | `messages` INSERT/UPDATE |
+| `plan:{planId}`            | status change, member added, activity                                                  | `plans`/`plan_activity`  |
+| `focus:{partnershipId}`    | `focus_started{ends_at}`, `focus_joined`, `focus_paused{newEndsAt}`, `focus_completed` | `shared_focus_sessions`  |
 
 ---
 
@@ -739,12 +763,14 @@ stay as-is. Nothing in the current runtime deps is removed.
 ---
 
 ### Open decisions (confirm before Phase B)
+
 1. Shared-focus pause policy: any member can pause, or both must agree?
 2. Chat retention window before Drive archival: keep N months in Postgres?
 3. Presence scope: show only `online/offline/focusing`, or also live timer progress?
 4. Webcam thumbnails: store a small thumbnail alongside the original for chat list previews?
 
 ### Guardrails (non-negotiable)
+
 - `storage/data.json` is never deleted, overwritten, or reformatted by the migration.
 - Service role key never enters the browser.
 - Drive is never a dependency for any live feature.

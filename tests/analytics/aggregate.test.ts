@@ -140,8 +140,20 @@ describe('aggregateDay', () => {
 describe('rollupWeek', () => {
   it('computes totals and the best day by weekday', () => {
     const dailies = [
-      daily('2025-03-03', { focusMinutes: 30, sessionsCompleted: 1, hourlyMinutes: Array(24).fill(0).map((_, h) => (h === 9 ? 30 : 0)) }),
-      daily('2025-03-04', { focusMinutes: 60, sessionsCompleted: 2, hourlyMinutes: Array(24).fill(0).map((_, h) => (h === 10 ? 60 : 0)) }),
+      daily('2025-03-03', {
+        focusMinutes: 30,
+        sessionsCompleted: 1,
+        hourlyMinutes: Array(24)
+          .fill(0)
+          .map((_, h) => (h === 9 ? 30 : 0)),
+      }),
+      daily('2025-03-04', {
+        focusMinutes: 60,
+        sessionsCompleted: 2,
+        hourlyMinutes: Array(24)
+          .fill(0)
+          .map((_, h) => (h === 10 ? 60 : 0)),
+      }),
     ];
     const week = rollupWeek(dailies);
     expect(week.weekStart).toBe('2025-03-03');
@@ -164,7 +176,10 @@ describe('rollupMonth', () => {
   it('rolls weeks up and finds preferred hours', () => {
     const hours = Array(24).fill(0);
     hours[20] = 45;
-    const weeks = [weekly('2025-03-03', { focusMinutes: 45, hourlyMinutes: hours, bestDayIndex: 1 }), weekly('2025-03-10', { focusMinutes: 45, hourlyMinutes: hours, bestDayIndex: 1 })];
+    const weeks = [
+      weekly('2025-03-03', { focusMinutes: 45, hourlyMinutes: hours, bestDayIndex: 1 }),
+      weekly('2025-03-10', { focusMinutes: 45, hourlyMinutes: hours, bestDayIndex: 1 }),
+    ];
     const month = rollupMonth(weeks);
     expect(month.month).toBe('2025-03');
     expect(month.focusMinutes).toBe(90);

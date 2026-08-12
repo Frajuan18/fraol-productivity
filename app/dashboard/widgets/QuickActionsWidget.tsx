@@ -13,7 +13,13 @@ interface Action {
 }
 
 const ACTIONS: Action[] = [
-  { key: 'new-plan', label: 'New Plan', description: 'Create a plan to guide your focus', tab: 'plans', icon: FiFilePlus },
+  {
+    key: 'new-plan',
+    label: 'New Plan',
+    description: 'Create a plan to guide your focus',
+    tab: 'plans',
+    icon: FiFilePlus,
+  },
   { key: 'start-focus', label: 'Start Focus', description: 'Begin a focus session now', tab: 'sessions', icon: FiPlay },
   { key: 'continue-plan', label: 'Continue Plan', description: 'Pick up your next task', tab: 'plans', icon: FiZap },
   { key: 'shared', label: 'Shared Space', description: 'Connect with your buddy', tab: 'partner', icon: FiUsers },

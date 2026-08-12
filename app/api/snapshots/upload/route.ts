@@ -34,7 +34,11 @@ export async function POST(request: Request): Promise<Response> {
     const privacy = await repository.getPrivacySettings(userId);
     if (privacy.shareSnapshots === false) {
       return NextResponse.json(
-        { ok: false, error: 'Snapshot sharing is disabled. Enable it in Partner privacy to share snapshots.', code: 'SNAPSHOTS_DISABLED' },
+        {
+          ok: false,
+          error: 'Snapshot sharing is disabled. Enable it in Partner privacy to share snapshots.',
+          code: 'SNAPSHOTS_DISABLED',
+        },
         { status: 403 },
       );
     }
@@ -51,7 +55,8 @@ export async function POST(request: Request): Promise<Response> {
       return NextResponse.json({ ok: false, error: 'Snapshots are limited to 15 MB.' }, { status: 400 });
     }
 
-    const caption = typeof form.get('caption') === 'string' && form.get('caption') ? String(form.get('caption')).trim() : null;
+    const caption =
+      typeof form.get('caption') === 'string' && form.get('caption') ? String(form.get('caption')).trim() : null;
     const bytes = new Uint8Array(await file.arrayBuffer());
     const mediaId = crypto.randomUUID();
 

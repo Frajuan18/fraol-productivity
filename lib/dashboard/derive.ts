@@ -208,7 +208,10 @@ export interface InsightSlice {
 }
 
 /** Up to three, stable insights derived purely from the data available to the overview. */
-export function buildInsights(sessions: Session[], stats: { weeklyChange: number; weeklyChangeDisplay: string; streak: number }): InsightSlice[] {
+export function buildInsights(
+  sessions: Session[],
+  stats: { weeklyChange: number; weeklyChangeDisplay: string; streak: number },
+): InsightSlice[] {
   if (sessions.length === 0) return [];
   const insights: InsightSlice[] = [];
   let longest = 0;

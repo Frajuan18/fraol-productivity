@@ -48,5 +48,10 @@ export function AnimatedNumber({ value, duration = 800, suffix = '', className, 
 
   const Tag = as === 'motion.span' ? motion.span : as === 'motion.div' ? motion.div : as;
 
-  return <Tag className={className}>{display}{suffix}</Tag>;
+  return (
+    <Tag className={className}>
+      {display}
+      {suffix}
+    </Tag>
+  );
 }

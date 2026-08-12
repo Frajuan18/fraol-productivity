@@ -1,10 +1,6 @@
 import type { Document } from 'mongodb';
 import type { PlanStatus, PlanTypeValue, PlanPriority, PlanFile } from '@/src/types';
-import type {
-  MediaStatus,
-  SharedFocusParticipant,
-  SharedFocusStatus,
-} from '@/src/types/collaboration';
+import type { MediaStatus, SharedFocusParticipant, SharedFocusStatus } from '@/src/types/collaboration';
 import type { DashboardLayout } from '@/lib/dashboard/types';
 
 export interface UserDoc extends Document {

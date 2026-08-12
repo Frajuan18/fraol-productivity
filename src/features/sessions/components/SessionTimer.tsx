@@ -212,7 +212,7 @@ export const SessionTimer = memo(function SessionTimer({
   );
   const canCreate = query.length > 0 && !allTaskTypes.some((t) => t.toLowerCase() === query);
 
-  const taskName = useMemo(() => (selectedTask || 'Focus Session'), [selectedTask]);
+  const taskName = useMemo(() => selectedTask || 'Focus Session', [selectedTask]);
 
   function showFeedback(text: string, tone: Feedback['tone'] = 'neutral') {
     if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
@@ -275,13 +275,16 @@ export const SessionTimer = memo(function SessionTimer({
       return;
     }
     setIsStarting(true);
-    setTimeout(() => {
-      setIsStarting(false);
-      setMode('active');
-      startTimestampRef.current = new Date();
-      timer.start();
-      showFeedback('Session started.', 'success');
-    }, reduced ? 0 : 400);
+    setTimeout(
+      () => {
+        setIsStarting(false);
+        setMode('active');
+        startTimestampRef.current = new Date();
+        timer.start();
+        showFeedback('Session started.', 'success');
+      },
+      reduced ? 0 : 400,
+    );
   }
 
   function handleAddTime(seconds: number) {
@@ -342,9 +345,7 @@ export const SessionTimer = memo(function SessionTimer({
   }
 
   function adjustCustomValue(delta: number) {
-    setCustomValue((v) =>
-      Math.max(1, Math.min(customUnit === 'minutes' ? 480 : 24, v + delta)),
-    );
+    setCustomValue((v) => Math.max(1, Math.min(customUnit === 'minutes' ? 480 : 24, v + delta)));
   }
 
   function applyCustomDuration() {
@@ -495,290 +496,157 @@ export const SessionTimer = memo(function SessionTimer({
                     />
                   </div>
 
-                <AnimatePresence>
-                  {showAddTypeInput && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: reduced ? 0 : 0.2, ease: 'easeInOut' }}
-                      className="overflow-hidden"
-                    >
-                      <div className="mt-2.5 bg-surface-hover/60 border border-border rounded-[12px] p-3">
-                        <label className="text-[10px] uppercase tracking-[0.08em] text-text-muted block mb-1.5">
-                          Task name
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={newTypeName}
-                            onChange={(e) => setNewTypeName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && newTypeName.trim()) addTaskType();
-                            }}
-                            placeholder="e.g. Meditation"
-                            aria-label="New task name"
-                            className="flex-1 h-9 px-3 bg-surface border border-border rounded-[10px] text-[13px] text-text placeholder:text-text-muted outline-none transition-all focus:border-border-hover focus:ring-2 focus:ring-[var(--focus-ring)]"
-                            autoFocus
-                          />
-                          <button
-                            onClick={addTaskType}
-                            disabled={!newTypeName.trim()}
-                            className="h-9 px-3 rounded-[10px] bg-accent text-accent-contrast text-[12px] font-semibold hover:bg-accent-hover transition-colors duration-150 disabled:opacity-40 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-                          >
-                            Add
-                          </button>
-                          <button
-                            onClick={() => {
-                              setNewTypeName('');
-                              setShowAddTypeInput(false);
-                            }}
-                            className="h-9 px-3 rounded-[10px] bg-surface border border-border text-text-secondary hover:text-text text-[12px] font-medium transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Focus tasks">
-                  {filteredTasks.map((task) => {
-                    const isCustom = taskTypes.includes(task);
-                    const isSelected = selectedTask === task;
-                    const Icon = TASK_ICONS[task];
-                    return (
-                      <div key={task} className="relative group">
-                        <button
-                          onClick={() => selectTask(task)}
-                          aria-pressed={isSelected}
-                          className={`relative inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[10px] text-[13px] font-medium transition-all duration-[200ms] ease-[cubic-bezier(0.2,0,0,1)] hover:-translate-y-px active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] motion-reduce:transition-none ${
-                            isSelected
-                              ? 'bg-text text-page border border-accent/30'
-                              : 'border border-border bg-surface-hover/40 text-text-secondary hover:bg-surface-hover/80 hover:text-text hover:border-border-hover'
-                          }`}
-                        >
-                          {Icon ? (
-                            <Icon
-                              size={13}
-                              aria-hidden
-                              className={isSelected ? 'text-page' : 'text-text-muted'}
+                  <AnimatePresence>
+                    {showAddTypeInput && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: reduced ? 0 : 0.2, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="mt-2.5 bg-surface-hover/60 border border-border rounded-[12px] p-3">
+                          <label className="text-[10px] uppercase tracking-[0.08em] text-text-muted block mb-1.5">
+                            Task name
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={newTypeName}
+                              onChange={(e) => setNewTypeName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && newTypeName.trim()) addTaskType();
+                              }}
+                              placeholder="e.g. Meditation"
+                              aria-label="New task name"
+                              className="flex-1 h-9 px-3 bg-surface border border-border rounded-[10px] text-[13px] text-text placeholder:text-text-muted outline-none transition-all focus:border-border-hover focus:ring-2 focus:ring-[var(--focus-ring)]"
+                              autoFocus
                             />
-                          ) : null}
-                          <span className="truncate max-w-[120px]">{task}</span>
-                          {isSelected && <FiCheck size={13} aria-hidden className="text-page shrink-0" />}
-                        </button>
-                        {isCustom && (
-                          <button
-                            onClick={() => onRemoveTaskType(task)}
-                            className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-danger text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:opacity-100 focus-visible:opacity-100 transition-opacity outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-                            aria-label={`Remove ${task}`}
-                            title={`Remove ${task}`}
-                          >
-                            <FiX size={9} aria-hidden />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {canCreate && (
-                    <button
-                      onClick={createTaskFromSearch}
-                      className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-[10px] border border-dashed border-border bg-surface-hover/40 text-accent hover:bg-surface-hover/80 text-[13px] font-medium transition-all duration-150 hover:-translate-y-px active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-                    >
-                      <FiPlus size={13} aria-hidden /> Create &ldquo;{searchQuery.trim()}&rdquo;
-                    </button>
-                  )}
-                </div>
-              </section>
+                            <button
+                              onClick={addTaskType}
+                              disabled={!newTypeName.trim()}
+                              className="h-9 px-3 rounded-[10px] bg-accent text-accent-contrast text-[12px] font-semibold hover:bg-accent-hover transition-colors duration-150 disabled:opacity-40 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                            >
+                              Add
+                            </button>
+                            <button
+                              onClick={() => {
+                                setNewTypeName('');
+                                setShowAddTypeInput(false);
+                              }}
+                              className="h-9 px-3 rounded-[10px] bg-surface border border-border text-text-secondary hover:text-text text-[12px] font-medium transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
-              {/* ===== Duration ===== */}
-              <section aria-labelledby="duration-heading" className="mt-5">
-                <div className="flex items-center justify-between gap-3 mb-2.5">
-                  <label
-                    id="duration-heading"
-                    className="text-xs font-semibold text-text-secondary"
-                  >
-                    Duration
-                  </label>
-                  <button
-                    onClick={() => (showCustomTime ? setShowCustomTime(false) : openCustomEditor())}
-                    aria-expanded={showCustomTime}
-                    className={`inline-flex items-center gap-1 text-[12px] font-semibold transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-lg px-1 py-0.5 shrink-0 ${
-                      customActive !== null ? 'text-accent' : 'text-text-secondary hover:text-text'
-                    }`}
-                  >
-                    <FiEdit3 size={12} aria-hidden className={customActive !== null ? 'text-accent' : 'text-text-muted'} />
-                    {customActive !== null ? `Custom · ${shortDurationLabel(customActive)}` : 'Custom'}
-                  </button>
-                </div>
-
-                {!showCustomTime ? (
-                  <>
-                    <div className="grid grid-cols-4 gap-2" role="group" aria-label="Focus durations">
-                      {PRESET_DURATIONS.map((preset) => {
-                        const isActive =
-                          Math.floor(timer.totalSeconds / 3600) === preset.hours &&
-                          Math.floor((timer.totalSeconds % 3600) / 60) === preset.minutes &&
-                          timer.totalSeconds % 60 === preset.seconds;
-                        return (
+                  <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Focus tasks">
+                    {filteredTasks.map((task) => {
+                      const isCustom = taskTypes.includes(task);
+                      const isSelected = selectedTask === task;
+                      const Icon = TASK_ICONS[task];
+                      return (
+                        <div key={task} className="relative group">
                           <button
-                            key={preset.label}
-                            onClick={() => applyPreset(preset.hours, preset.minutes, preset.seconds)}
-                            aria-pressed={isActive}
-                            className={`relative inline-flex items-center justify-center h-10 min-w-0 rounded-[12px] text-[13px] font-medium tabular-nums transition-all duration-[200ms] ease-[cubic-bezier(0.2,0,0,1)] hover:-translate-y-px active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] motion-reduce:transition-none ${
-                              isActive
-                                ? 'bg-text text-page shadow-[0_1px_3px_rgba(0,0,0,0.2)]'
+                            onClick={() => selectTask(task)}
+                            aria-pressed={isSelected}
+                            className={`relative inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[10px] text-[13px] font-medium transition-all duration-[200ms] ease-[cubic-bezier(0.2,0,0,1)] hover:-translate-y-px active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] motion-reduce:transition-none ${
+                              isSelected
+                                ? 'bg-text text-page border border-accent/30'
                                 : 'border border-border bg-surface-hover/40 text-text-secondary hover:bg-surface-hover/80 hover:text-text hover:border-border-hover'
                             }`}
                           >
-                            {preset.label}
-                            {isActive && (
-                              <span
-                                aria-hidden
-                                className="absolute -top-[6px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-accent"
-                              />
-                            )}
+                            {Icon ? (
+                              <Icon size={13} aria-hidden className={isSelected ? 'text-page' : 'text-text-muted'} />
+                            ) : null}
+                            <span className="truncate max-w-[120px]">{task}</span>
+                            {isSelected && <FiCheck size={13} aria-hidden className="text-page shrink-0" />}
                           </button>
-                        );
-                      })}
-                    </div>
-                    <p className="mt-3 text-[13px] text-text-secondary" aria-live="polite">
-                      {summaryLabel(timer.totalSeconds)} {taskName} session
-                    </p>
-                  </>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: reduced ? 0 : 0.22, ease: 'easeInOut' }}
-                    className="overflow-hidden"
-                  >
-                    <div className="mt-2.5 bg-surface-hover/60 border border-border rounded-[12px] p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-[12px] font-medium text-text">Duration</span>
-                        <div className="flex items-center bg-surface rounded-lg p-0.5 border border-border">
-                          {(['minutes', 'hours'] as const).map((unit) => (
+                          {isCustom && (
                             <button
-                              key={unit}
-                              onClick={() => setCustomUnit(unit)}
-                              aria-pressed={customUnit === unit}
-                              className={`h-7 px-2.5 rounded-md text-[11px] font-medium capitalize transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] ${
-                                customUnit === unit
-                                  ? 'bg-surface-raised text-text shadow-sm'
-                                  : 'text-text-secondary hover:text-text'
+                              onClick={() => onRemoveTaskType(task)}
+                              className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-danger text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:opacity-100 focus-visible:opacity-100 transition-opacity outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                              aria-label={`Remove ${task}`}
+                              title={`Remove ${task}`}
+                            >
+                              <FiX size={9} aria-hidden />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {canCreate && (
+                      <button
+                        onClick={createTaskFromSearch}
+                        className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-[10px] border border-dashed border-border bg-surface-hover/40 text-accent hover:bg-surface-hover/80 text-[13px] font-medium transition-all duration-150 hover:-translate-y-px active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                      >
+                        <FiPlus size={13} aria-hidden /> Create &ldquo;{searchQuery.trim()}&rdquo;
+                      </button>
+                    )}
+                  </div>
+                </section>
+
+                {/* ===== Duration ===== */}
+                <section aria-labelledby="duration-heading" className="mt-5">
+                  <div className="flex items-center justify-between gap-3 mb-2.5">
+                    <label id="duration-heading" className="text-xs font-semibold text-text-secondary">
+                      Duration
+                    </label>
+                    <button
+                      onClick={() => (showCustomTime ? setShowCustomTime(false) : openCustomEditor())}
+                      aria-expanded={showCustomTime}
+                      className={`inline-flex items-center gap-1 text-[12px] font-semibold transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-lg px-1 py-0.5 shrink-0 ${
+                        customActive !== null ? 'text-accent' : 'text-text-secondary hover:text-text'
+                      }`}
+                    >
+                      <FiEdit3
+                        size={12}
+                        aria-hidden
+                        className={customActive !== null ? 'text-accent' : 'text-text-muted'}
+                      />
+                      {customActive !== null ? `Custom · ${shortDurationLabel(customActive)}` : 'Custom'}
+                    </button>
+                  </div>
+
+                  {!showCustomTime ? (
+                    <>
+                      <div className="grid grid-cols-4 gap-2" role="group" aria-label="Focus durations">
+                        {PRESET_DURATIONS.map((preset) => {
+                          const isActive =
+                            Math.floor(timer.totalSeconds / 3600) === preset.hours &&
+                            Math.floor((timer.totalSeconds % 3600) / 60) === preset.minutes &&
+                            timer.totalSeconds % 60 === preset.seconds;
+                          return (
+                            <button
+                              key={preset.label}
+                              onClick={() => applyPreset(preset.hours, preset.minutes, preset.seconds)}
+                              aria-pressed={isActive}
+                              className={`relative inline-flex items-center justify-center h-10 min-w-0 rounded-[12px] text-[13px] font-medium tabular-nums transition-all duration-[200ms] ease-[cubic-bezier(0.2,0,0,1)] hover:-translate-y-px active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] motion-reduce:transition-none ${
+                                isActive
+                                  ? 'bg-text text-page shadow-[0_1px_3px_rgba(0,0,0,0.2)]'
+                                  : 'border border-border bg-surface-hover/40 text-text-secondary hover:bg-surface-hover/80 hover:text-text hover:border-border-hover'
                               }`}
                             >
-                              {unit}
+                              {preset.label}
+                              {isActive && (
+                                <span
+                                  aria-hidden
+                                  className="absolute -top-[6px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-accent"
+                                />
+                              )}
                             </button>
-                          ))}
-                        </div>
+                          );
+                        })}
                       </div>
-
-                      <div className="mt-3 flex items-center justify-center gap-2.5">
-                        <button
-                          onClick={() => adjustCustomValue(-1)}
-                          className="w-9 h-9 flex items-center justify-center rounded-[10px] bg-surface border border-border text-text-secondary hover:text-text hover:border-border-hover transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-                          aria-label={`Decrease ${customUnit}`}
-                        >
-                          <FiMinus size={13} aria-hidden />
-                        </button>
-                        <div className="flex items-center gap-1.5">
-                          <input
-                            type="number"
-                            min="1"
-                            max={customUnit === 'minutes' ? 480 : 24}
-                            value={customValue}
-                            onChange={(e) =>
-                              setCustomValue(Math.max(1, parseInt(e.target.value, 10) || 1))
-                            }
-                            aria-label={`Custom duration in ${customUnit}`}
-                            className="w-20 px-0 py-2 bg-transparent text-text text-center text-[20px] font-semibold tabular-nums outline-none focus:text-accent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          />
-                          <span className="text-[12px] text-text-muted capitalize">
-                            {customUnit === 'minutes' ? 'minutes' : 'hours'}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => adjustCustomValue(1)}
-                          className="w-9 h-9 flex items-center justify-center rounded-[10px] bg-surface border border-border text-text-secondary hover:text-text hover:border-border-hover transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-                          aria-label={`Increase ${customUnit}`}
-                        >
-                          <FiPlus size={13} aria-hidden />
-                        </button>
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
-                        {[10, 20, 50, 90].map((m) => (
-                          <button
-                            key={m}
-                            onClick={() => {
-                              setCustomUnit('minutes');
-                              setCustomValue(m);
-                            }}
-                            className="h-8 px-2.5 rounded-lg bg-surface border border-border text-text-secondary hover:text-text text-[12px] font-medium tabular-nums transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-                          >
-                            {m}m
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="mt-3 flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => setShowCustomTime(false)}
-                          className="h-9 px-3 rounded-[10px] text-[12px] font-medium bg-surface border border-border text-text-secondary hover:text-text transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={applyCustomDuration}
-                          className="h-9 px-3 rounded-[10px] text-[12px] font-semibold bg-accent hover:bg-accent-hover text-accent-contrast transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-                        >
-                          Apply duration
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </section>
-
-              {/* ===== Saved setups ===== */}
-              <section aria-labelledby="setups-heading" className="mt-5">
-                <div className="flex items-center justify-between">
-                  <button
-                    onClick={() => setShowSavedSetups((v) => !v)}
-                    aria-expanded={showSavedSetups}
-                    className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-text-secondary hover:text-text transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-lg px-1 py-0.5"
-                  >
-                    <FiBookmark
-                      size={13}
-                      aria-hidden
-                      className={showSavedSetups ? 'text-accent' : 'text-text-muted'}
-                    />
-                    Saved setups
-                    {savedSetups.length > 0 && (
-                      <span className="text-[10px] font-semibold tabular-nums text-text-muted bg-surface-hover rounded-full px-1.5 py-0.5">
-                        {savedSetups.length}
-                      </span>
-                    )}
-                  </button>
-                  {showSavedSetups && !savingSetup && !currentSetupSaved && (
-                    <button
-                      onClick={() => {
-                        setSetupName(taskName);
-                        setSavingSetup(true);
-                      }}
-                      className="inline-flex items-center gap-1 text-[12px] font-semibold text-accent hover:text-accent-hover transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-lg px-1 py-0.5"
-                    >
-                      <FiPlus size={13} aria-hidden /> Save current setup
-                    </button>
-                  )}
-                </div>
-
-                <AnimatePresence>
-                  {showSavedSetups && (
+                      <p className="mt-3 text-[13px] text-text-secondary" aria-live="polite">
+                        {summaryLabel(timer.totalSeconds)} {taskName} session
+                      </p>
+                    </>
+                  ) : (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
@@ -786,122 +654,251 @@ export const SessionTimer = memo(function SessionTimer({
                       transition={{ duration: reduced ? 0 : 0.22, ease: 'easeInOut' }}
                       className="overflow-hidden"
                     >
-                      {savingSetup ? (
-                        <div className="mt-2.5 bg-surface-hover/60 border border-border rounded-[12px] p-3">
-                          <label className="text-[10px] uppercase tracking-[0.08em] text-text-muted block mb-1.5">
-                            Name this setup
-                          </label>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={setupName}
-                              onChange={(e) => setSetupName(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && setupName.trim()) commitSetup(setupName);
-                              }}
-                              placeholder="e.g. Morning deep work"
-                              aria-label="Setup name"
-                              className="flex-1 h-9 px-3 bg-surface border border-border rounded-[10px] text-[13px] text-text placeholder:text-text-muted outline-none transition-all focus:border-border-hover focus:ring-2 focus:ring-[var(--focus-ring)]"
-                              autoFocus
-                            />
-                            <button
-                              onClick={() => commitSetup(setupName)}
-                              disabled={!setupName.trim()}
-                              className="h-9 px-3 rounded-[10px] bg-accent text-accent-contrast text-[12px] font-semibold hover:bg-accent-hover transition-colors duration-150 disabled:opacity-40 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => setSavingSetup(false)}
-                              className="h-9 px-3 rounded-[10px] bg-surface border border-border text-text-secondary hover:text-text text-[12px] font-medium transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-                            >
-                              Cancel
-                            </button>
+                      <div className="mt-2.5 bg-surface-hover/60 border border-border rounded-[12px] p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-[12px] font-medium text-text">Duration</span>
+                          <div className="flex items-center bg-surface rounded-lg p-0.5 border border-border">
+                            {(['minutes', 'hours'] as const).map((unit) => (
+                              <button
+                                key={unit}
+                                onClick={() => setCustomUnit(unit)}
+                                aria-pressed={customUnit === unit}
+                                className={`h-7 px-2.5 rounded-md text-[11px] font-medium capitalize transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] ${
+                                  customUnit === unit
+                                    ? 'bg-surface-raised text-text shadow-sm'
+                                    : 'text-text-secondary hover:text-text'
+                                }`}
+                              >
+                                {unit}
+                              </button>
+                            ))}
                           </div>
                         </div>
-                      ) : savedSetups.length === 0 ? (
-                        <div className="mt-2.5 bg-surface-hover/40 border border-border rounded-[12px] px-4 py-4 text-center">
-                          <FiBookmark className="mx-auto text-text-muted" size={15} aria-hidden />
-                          <p className="mt-1.5 text-[13px] text-text-secondary">No saved setups yet.</p>
-                          <p className="mt-0.5 text-[11px] text-text-muted">
-                            Configure a session and save it for later.
-                          </p>
+
+                        <div className="mt-3 flex items-center justify-center gap-2.5">
+                          <button
+                            onClick={() => adjustCustomValue(-1)}
+                            className="w-9 h-9 flex items-center justify-center rounded-[10px] bg-surface border border-border text-text-secondary hover:text-text hover:border-border-hover transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                            aria-label={`Decrease ${customUnit}`}
+                          >
+                            <FiMinus size={13} aria-hidden />
+                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              min="1"
+                              max={customUnit === 'minutes' ? 480 : 24}
+                              value={customValue}
+                              onChange={(e) => setCustomValue(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                              aria-label={`Custom duration in ${customUnit}`}
+                              className="w-20 px-0 py-2 bg-transparent text-text text-center text-[20px] font-semibold tabular-nums outline-none focus:text-accent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                            <span className="text-[12px] text-text-muted capitalize">
+                              {customUnit === 'minutes' ? 'minutes' : 'hours'}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => adjustCustomValue(1)}
+                            className="w-9 h-9 flex items-center justify-center rounded-[10px] bg-surface border border-border text-text-secondary hover:text-text hover:border-border-hover transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                            aria-label={`Increase ${customUnit}`}
+                          >
+                            <FiPlus size={13} aria-hidden />
+                          </button>
                         </div>
-                      ) : (
-                        <ul className="mt-2.5 bg-surface-hover/40 border border-border rounded-[12px] divide-y divide-divider overflow-hidden">
-                          {savedSetups.map((setup) => (
-                            <li key={setup.id}>
-                              <div className="flex items-center gap-2 px-3 py-2">
-                                <button
-                                  onClick={() => applySetup(setup)}
-                                  className="flex-1 min-w-0 text-left rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-                                >
-                                  <span className="block text-[13px] font-medium text-text truncate">
-                                    {setup.task} · {shortDurationLabel(setup.seconds)}
-                                  </span>
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    setSavedSetups((prev) => prev.filter((s) => s.id !== setup.id))
-                                  }
-                                  className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted hover:text-danger hover:bg-danger/10 transition-colors opacity-0 group-hover:opacity-100 hover:opacity-100 focus-visible:opacity-100 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
-                                  aria-label={`Delete ${setup.task} setup`}
-                                  title="Delete setup"
-                                >
-                                  <FiTrash2 size={13} aria-hidden />
-                                </button>
-                              </div>
-                            </li>
+
+                        <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+                          {[10, 20, 50, 90].map((m) => (
+                            <button
+                              key={m}
+                              onClick={() => {
+                                setCustomUnit('minutes');
+                                setCustomValue(m);
+                              }}
+                              className="h-8 px-2.5 rounded-lg bg-surface border border-border text-text-secondary hover:text-text text-[12px] font-medium tabular-nums transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                            >
+                              {m}m
+                            </button>
                           ))}
-                        </ul>
-                      )}
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setShowCustomTime(false)}
+                            className="h-9 px-3 rounded-[10px] text-[12px] font-medium bg-surface border border-border text-text-secondary hover:text-text transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={applyCustomDuration}
+                            className="h-9 px-3 rounded-[10px] text-[12px] font-semibold bg-accent hover:bg-accent-hover text-accent-contrast transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                          >
+                            Apply duration
+                          </button>
+                        </div>
+                      </div>
                     </motion.div>
                   )}
-                </AnimatePresence>
-              </section>
+                </section>
 
-              {/* ===== Start ===== */}
-              <div className="mt-5">
-                <motion.button
-                  onClick={handleStartSession}
-                  disabled={isStarting}
-                  aria-label={startLabel(timer.totalSeconds)}
-                  className="w-full h-12 rounded-[14px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold text-[15px] flex items-center justify-center gap-2 transition-all duration-[200ms] ease-[cubic-bezier(0.2,0,0,1)] hover:-translate-y-px active:translate-y-0 active:scale-[0.985] active:shadow-none disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_2px_8px_rgba(0,0,0,0.12)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] motion-reduce:transition-none motion-reduce:transform-none"
-                >
-                  {isStarting ? (
-                    <>
-                      <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" aria-hidden />
-                      Starting session…
-                    </>
-                  ) : (
-                    <>
-                      <FiPlay size={17} fill="currentColor" aria-hidden /> {startLabel(timer.totalSeconds)}
-                    </>
-                  )}
-                </motion.button>
-
-                <p className="mt-2 text-center text-[12px] text-text-muted" aria-live="polite">
-                  Ready to focus
-                </p>
-
-                <AnimatePresence>
-                  {feedback && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: reduced ? 0 : 0.18 }}
-                      className={`mt-2 flex items-center justify-center gap-1.5 text-[12px] font-medium ${
-                        feedback.tone === 'warning' ? 'text-warning' : 'text-success'
-                      }`}
-                      role="status"
+                {/* ===== Saved setups ===== */}
+                <section aria-labelledby="setups-heading" className="mt-5">
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => setShowSavedSetups((v) => !v)}
+                      aria-expanded={showSavedSetups}
+                      className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-text-secondary hover:text-text transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-lg px-1 py-0.5"
                     >
-                      <FiCheckCircle size={13} aria-hidden />
-                      {feedback.text}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                      <FiBookmark
+                        size={13}
+                        aria-hidden
+                        className={showSavedSetups ? 'text-accent' : 'text-text-muted'}
+                      />
+                      Saved setups
+                      {savedSetups.length > 0 && (
+                        <span className="text-[10px] font-semibold tabular-nums text-text-muted bg-surface-hover rounded-full px-1.5 py-0.5">
+                          {savedSetups.length}
+                        </span>
+                      )}
+                    </button>
+                    {showSavedSetups && !savingSetup && !currentSetupSaved && (
+                      <button
+                        onClick={() => {
+                          setSetupName(taskName);
+                          setSavingSetup(true);
+                        }}
+                        className="inline-flex items-center gap-1 text-[12px] font-semibold text-accent hover:text-accent-hover transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-lg px-1 py-0.5"
+                      >
+                        <FiPlus size={13} aria-hidden /> Save current setup
+                      </button>
+                    )}
+                  </div>
+
+                  <AnimatePresence>
+                    {showSavedSetups && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: reduced ? 0 : 0.22, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                      >
+                        {savingSetup ? (
+                          <div className="mt-2.5 bg-surface-hover/60 border border-border rounded-[12px] p-3">
+                            <label className="text-[10px] uppercase tracking-[0.08em] text-text-muted block mb-1.5">
+                              Name this setup
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={setupName}
+                                onChange={(e) => setSetupName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && setupName.trim()) commitSetup(setupName);
+                                }}
+                                placeholder="e.g. Morning deep work"
+                                aria-label="Setup name"
+                                className="flex-1 h-9 px-3 bg-surface border border-border rounded-[10px] text-[13px] text-text placeholder:text-text-muted outline-none transition-all focus:border-border-hover focus:ring-2 focus:ring-[var(--focus-ring)]"
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => commitSetup(setupName)}
+                                disabled={!setupName.trim()}
+                                className="h-9 px-3 rounded-[10px] bg-accent text-accent-contrast text-[12px] font-semibold hover:bg-accent-hover transition-colors duration-150 disabled:opacity-40 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={() => setSavingSetup(false)}
+                                className="h-9 px-3 rounded-[10px] bg-surface border border-border text-text-secondary hover:text-text text-[12px] font-medium transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : savedSetups.length === 0 ? (
+                          <div className="mt-2.5 bg-surface-hover/40 border border-border rounded-[12px] px-4 py-4 text-center">
+                            <FiBookmark className="mx-auto text-text-muted" size={15} aria-hidden />
+                            <p className="mt-1.5 text-[13px] text-text-secondary">No saved setups yet.</p>
+                            <p className="mt-0.5 text-[11px] text-text-muted">
+                              Configure a session and save it for later.
+                            </p>
+                          </div>
+                        ) : (
+                          <ul className="mt-2.5 bg-surface-hover/40 border border-border rounded-[12px] divide-y divide-divider overflow-hidden">
+                            {savedSetups.map((setup) => (
+                              <li key={setup.id}>
+                                <div className="flex items-center gap-2 px-3 py-2">
+                                  <button
+                                    onClick={() => applySetup(setup)}
+                                    className="flex-1 min-w-0 text-left rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                                  >
+                                    <span className="block text-[13px] font-medium text-text truncate">
+                                      {setup.task} · {shortDurationLabel(setup.seconds)}
+                                    </span>
+                                  </button>
+                                  <button
+                                    onClick={() => setSavedSetups((prev) => prev.filter((s) => s.id !== setup.id))}
+                                    className="w-7 h-7 flex items-center justify-center rounded-lg text-text-muted hover:text-danger hover:bg-danger/10 transition-colors opacity-0 group-hover:opacity-100 hover:opacity-100 focus-visible:opacity-100 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                                    aria-label={`Delete ${setup.task} setup`}
+                                    title="Delete setup"
+                                  >
+                                    <FiTrash2 size={13} aria-hidden />
+                                  </button>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </section>
+
+                {/* ===== Start ===== */}
+                <div className="mt-5">
+                  <motion.button
+                    onClick={handleStartSession}
+                    disabled={isStarting}
+                    aria-label={startLabel(timer.totalSeconds)}
+                    className="w-full h-12 rounded-[14px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold text-[15px] flex items-center justify-center gap-2 transition-all duration-[200ms] ease-[cubic-bezier(0.2,0,0,1)] hover:-translate-y-px active:translate-y-0 active:scale-[0.985] active:shadow-none disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_2px_8px_rgba(0,0,0,0.12)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] motion-reduce:transition-none motion-reduce:transform-none"
+                  >
+                    {isStarting ? (
+                      <>
+                        <span
+                          className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"
+                          aria-hidden
+                        />
+                        Starting session…
+                      </>
+                    ) : (
+                      <>
+                        <FiPlay size={17} fill="currentColor" aria-hidden /> {startLabel(timer.totalSeconds)}
+                      </>
+                    )}
+                  </motion.button>
+
+                  <p className="mt-2 text-center text-[12px] text-text-muted" aria-live="polite">
+                    Ready to focus
+                  </p>
+
+                  <AnimatePresence>
+                    {feedback && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: reduced ? 0 : 0.18 }}
+                        className={`mt-2 flex items-center justify-center gap-1.5 text-[12px] font-medium ${
+                          feedback.tone === 'warning' ? 'text-warning' : 'text-success'
+                        }`}
+                        role="status"
+                      >
+                        <FiCheckCircle size={13} aria-hidden />
+                        {feedback.text}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -927,14 +924,7 @@ export const SessionTimer = memo(function SessionTimer({
                   className="w-[280px] h-[280px] sm:w-[316px] sm:h-[316px] -rotate-90"
                   aria-hidden="true"
                 >
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r={ringRadius}
-                    fill="none"
-                    stroke="var(--border)"
-                    strokeWidth="3.5"
-                  />
+                  <circle cx="60" cy="60" r={ringRadius} fill="none" stroke="var(--border)" strokeWidth="3.5" />
                   <motion.circle
                     cx="60"
                     cy="60"
@@ -976,9 +966,7 @@ export const SessionTimer = memo(function SessionTimer({
               </div>
 
               <div className="mt-5 flex items-center gap-2 text-sm text-text-muted" aria-live="polite">
-                <span
-                  className={`w-2 h-2 rounded-full ${timer.isRunning ? 'bg-accent/80' : 'bg-warning/80'}`}
-                />
+                <span className={`w-2 h-2 rounded-full ${timer.isRunning ? 'bg-accent/80' : 'bg-warning/80'}`} />
                 {timer.isRunning ? 'Focus session in progress' : 'Session paused'}
               </div>
 
@@ -1041,9 +1029,7 @@ export const SessionTimer = memo(function SessionTimer({
                     role="alertdialog"
                     aria-label="Confirm ending session"
                   >
-                    <p className="text-sm text-text-secondary">
-                      End this session now? Your progress will be lost.
-                    </p>
+                    <p className="text-sm text-text-secondary">End this session now? Your progress will be lost.</p>
                     <div className="mt-3 flex items-center justify-center gap-2">
                       <button
                         onClick={() => setConfirmEnd(false)}

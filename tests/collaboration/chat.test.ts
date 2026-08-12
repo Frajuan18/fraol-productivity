@@ -1,11 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import {
-  applyReadReceipt,
-  countUnread,
-  sortMessages,
-  upsertMessage,
-} from '@/lib/realtime/chat';
+import { applyReadReceipt, countUnread, sortMessages, upsertMessage } from '@/lib/realtime/chat';
 import type { Message } from '@/src/types/collaboration';
 
 function msg(id: string, senderId: string, createdAt: string, readAt?: string | null): Message {
@@ -24,7 +19,10 @@ function msg(id: string, senderId: string, createdAt: string, readAt?: string | 
 
 describe('upsertMessage', () => {
   it('appends a new message', () => {
-    const result = upsertMessage([msg('a', 'u1', '2026-01-01T00:00:00.000Z')], msg('b', 'u2', '2026-01-01T00:00:01.000Z'));
+    const result = upsertMessage(
+      [msg('a', 'u1', '2026-01-01T00:00:00.000Z')],
+      msg('b', 'u2', '2026-01-01T00:00:01.000Z'),
+    );
     expect(result).toHaveLength(2);
   });
 
@@ -46,7 +44,10 @@ describe('applyReadReceipt', () => {
 
 describe('sortMessages', () => {
   it('orders oldest first', () => {
-    const result = sortMessages([msg('2', 'u2', '2026-01-01T00:00:02.000Z'), msg('1', 'u1', '2026-01-01T00:00:01.000Z')]);
+    const result = sortMessages([
+      msg('2', 'u2', '2026-01-01T00:00:02.000Z'),
+      msg('1', 'u1', '2026-01-01T00:00:01.000Z'),
+    ]);
     expect(result[0].id).toBe('1');
   });
 });

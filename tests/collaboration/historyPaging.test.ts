@@ -11,7 +11,11 @@ function activity(id: string, createdAt: string): SharedActivityItem {
 
 describe('activityMath', () => {
   it('sorts newest-first and pages with a cursor', () => {
-    const items = [activity('a', '2026-01-01T00:00:00.000Z'), activity('b', '2026-01-03T00:00:00.000Z'), activity('c', '2026-01-02T00:00:00.000Z')];
+    const items = [
+      activity('a', '2026-01-01T00:00:00.000Z'),
+      activity('b', '2026-01-03T00:00:00.000Z'),
+      activity('c', '2026-01-02T00:00:00.000Z'),
+    ];
     const sorted = sortActivityNewestFirst(items);
     expect(sorted.map((i) => i.id)).toEqual(['b', 'c', 'a']);
     const page = buildActivityPage(sorted, 2);
@@ -44,7 +48,11 @@ function plan(id: number, updatedAt: string): Plan {
 
 describe('planPaging', () => {
   it('sorts by updatedAt newest-first and pages', () => {
-    const plans = [plan(1, '2026-01-01T00:00:00.000Z'), plan(2, '2026-01-03T00:00:00.000Z'), plan(3, '2026-01-02T00:00:00.000Z')];
+    const plans = [
+      plan(1, '2026-01-01T00:00:00.000Z'),
+      plan(2, '2026-01-03T00:00:00.000Z'),
+      plan(3, '2026-01-02T00:00:00.000Z'),
+    ];
     const sorted = sortPlansNewestFirst(plans);
     expect(sorted.map((p) => p.id)).toEqual([2, 3, 1]);
     const page = buildPlanPage(sorted, 2);

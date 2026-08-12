@@ -24,7 +24,11 @@ export function readMigrationState(): MigrationStateRecord | null {
 export function isMigrationComplete(sourceChecksum: string): boolean {
   const state = readMigrationState();
   if (!state) return false;
-  return state.migrationName === MIGRATION_NAME && state.version >= MIGRATION_VERSION && state.sourceChecksum === sourceChecksum;
+  return (
+    state.migrationName === MIGRATION_NAME &&
+    state.version >= MIGRATION_VERSION &&
+    state.sourceChecksum === sourceChecksum
+  );
 }
 
 export function recordMigration(checksum: string, rowCounts: MigrationRowCounts): MigrationStateRecord {

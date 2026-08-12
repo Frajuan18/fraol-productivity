@@ -107,7 +107,12 @@ describe('suggestSchedule', () => {
 
 describe('suggestSplit', () => {
   it('suggests splitting when estimated scope exceeds weekly capacity', () => {
-    const sig = signals({ weeklyCapacityMinutes: 120, dailyCapacityMinutes: 40, avgSessionMinutes: 200, medianSessionMinutes: 200 });
+    const sig = signals({
+      weeklyCapacityMinutes: 120,
+      dailyCapacityMinutes: 40,
+      avgSessionMinutes: 200,
+      medianSessionMinutes: 200,
+    });
     const rec = suggestSplit({ title: 'Huge task' }, sig)!;
     expect(rec.kind).toBe('split');
     expect(rec.canApply).toBe(false);

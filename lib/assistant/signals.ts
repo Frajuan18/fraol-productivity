@@ -145,7 +145,13 @@ export function computeHistorySignals(sessions: Session[], plans: Plan[], now = 
 
   const openPlans = plans
     .filter((p) => p.status !== 'completed')
-    .map((p) => ({ id: p.id, title: p.title, date: p.date, category: p.category, priority: p.priority as PlanPriority }));
+    .map((p) => ({
+      id: p.id,
+      title: p.title,
+      date: p.date,
+      category: p.category,
+      priority: p.priority as PlanPriority,
+    }));
 
   const totalPlans = plans.length;
   const completedPlans = plans.filter((p) => p.status === 'completed').length;

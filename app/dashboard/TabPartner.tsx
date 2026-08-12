@@ -524,7 +524,8 @@ export default function TabPartner() {
     setSection(next);
     if (next === 'chat') void loadChat();
     if (next === 'activity' && !activityLoadedRef.current) void loadActivity();
-  };  useEffect(() => {
+  };
+  useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, partnerTyping, chatLoading]);
@@ -561,7 +562,9 @@ export default function TabPartner() {
         type: 'text',
         body: text,
       });
-      setMessages((prev) => sortMessages(prev.map((m) => (m.id === optimistic.id ? { ...message, delivery: 'sent' } : m))));
+      setMessages((prev) =>
+        sortMessages(prev.map((m) => (m.id === optimistic.id ? { ...message, delivery: 'sent' } : m))),
+      );
     } catch (err) {
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       setError(err instanceof Error ? err.message : 'Failed to send message.');
@@ -584,7 +587,9 @@ export default function TabPartner() {
     setSnapshotError(null);
     try {
       const page = await getRepository().listSnapshots(userId, conversationId, cursor ?? undefined, 12);
-      setSnapshots((prev) => (reset ? page.items : [...prev, ...page.items.filter((n) => !prev.some((p) => p.id === n.id))]));
+      setSnapshots((prev) =>
+        reset ? page.items : [...prev, ...page.items.filter((n) => !prev.some((p) => p.id === n.id))],
+      );
       setSnapshotsHasMore(page.hasMore);
       setSnapshotCursor(page.nextCursor);
     } catch (err) {
@@ -616,7 +621,9 @@ export default function TabPartner() {
           `${result.exported.length} exported; ${result.failed.length} could not be exported (${result.failed[0].reason}).`,
         );
       } else {
-        setSnapshotNotice(`Exported ${result.exported.length} snapshot${result.exported.length !== 1 ? 's' : ''} as ${result.fileName}. You can now remove them.`);
+        setSnapshotNotice(
+          `Exported ${result.exported.length} snapshot${result.exported.length !== 1 ? 's' : ''} as ${result.fileName}. You can now remove them.`,
+        );
       }
       await loadSnapshots(undefined, true);
     } catch (err) {
@@ -641,7 +648,9 @@ export default function TabPartner() {
           `Removed ${result.removed.length}; ${result.failed.length} not removed (${result.failed[0].reason}).`,
         );
       } else {
-        setSnapshotNotice(`Removed ${result.removed.length} snapshot${result.removed.length !== 1 ? 's' : ''} after export.`);
+        setSnapshotNotice(
+          `Removed ${result.removed.length} snapshot${result.removed.length !== 1 ? 's' : ''} after export.`,
+        );
       }
     } catch (err) {
       setSnapshotError(err instanceof Error ? err.message : 'Failed to remove snapshots.');
@@ -889,8 +898,9 @@ export default function TabPartner() {
                   <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-text">No partner configured</h2>
                   <p className="mt-2 max-w-md text-[13px] text-text-muted">
                     Your account is not part of a configured partnership yet. Partnerships are set up by an
-                    administrator with <code className="rounded bg-surface-hover px-1.5 py-0.5 text-xs">npm run partner:seed</code>;
-                    there is no invitation flow.
+                    administrator with{' '}
+                    <code className="rounded bg-surface-hover px-1.5 py-0.5 text-xs">npm run partner:seed</code>; there
+                    is no invitation flow.
                   </p>
                 </div>
               </div>
@@ -912,13 +922,9 @@ export default function TabPartner() {
                           <div className="mt-0.5 text-[13px] text-text-muted">{overview.profile.email}</div>
                           <div className="mt-2 flex items-center gap-1.5">
                             <span className={`h-2 w-2 rounded-full ${statusLabel(presenceStatus).dot}`} />
-                            <span className="text-xs text-text-secondary">
-                              {statusLabel(presenceStatus).label}
-                            </span>
+                            <span className="text-xs text-text-secondary">{statusLabel(presenceStatus).label}</span>
                             {presenceSeen && (
-                              <span className="text-[10px] text-text-muted">
-                                · seen {relativeTime(presenceSeen)}
-                              </span>
+                              <span className="text-[10px] text-text-muted">· seen {relativeTime(presenceSeen)}</span>
                             )}
                           </div>
                         </div>
@@ -1024,8 +1030,8 @@ export default function TabPartner() {
                     <motion.section {...fade(0.08)} className={softCard}>
                       <h2 className="text-[16px] font-semibold tracking-[-0.01em] text-text">Common plans</h2>
                       <p className="mt-1 text-[13px] text-text-muted">
-                        One shared plan document for both of you. Owner and editor can edit; only the owner can
-                        delete. Edits are conflict-checked so you never overwrite each other silently.
+                        One shared plan document for both of you. Owner and editor can edit; only the owner can delete.
+                        Edits are conflict-checked so you never overwrite each other silently.
                       </p>
 
                       <div className="mt-5 rounded-[14px] border border-border bg-surface-hover/60 p-4">
@@ -1181,8 +1187,7 @@ export default function TabPartner() {
                       {mySharedPlans.length > 0 && (
                         <p className="mt-4 rounded-[12px] border border-border bg-surface-hover/50 px-3.5 py-2.5 text-xs text-text-secondary">
                           <FiUsers size={12} className="mr-1.5 inline text-accent" />
-                          {mySharedPlans.length} of your plans are currently visible to{' '}
-                          {overview.profile.displayName}.
+                          {mySharedPlans.length} of your plans are currently visible to {overview.profile.displayName}.
                         </p>
                       )}
                     </motion.section>
@@ -1200,8 +1205,8 @@ export default function TabPartner() {
                       <div>
                         <h2 className="text-[16px] font-semibold tracking-[-0.01em] text-text">Shared focus</h2>
                         <p className="text-[13px] text-text-muted">
-                          Lock in focus sessions together. The timer is server-authoritative and stays in sync on
-                          both dashboards.
+                          Lock in focus sessions together. The timer is server-authoritative and stays in sync on both
+                          dashboards.
                         </p>
                       </div>
                     </div>
@@ -1214,7 +1219,9 @@ export default function TabPartner() {
                   {!getPublicCloudEnabled() ? (
                     <p className="mt-6 text-sm text-text-muted">
                       Realtime shared focus requires MongoDB mode. Enable{' '}
-                      <code className="rounded bg-surface-hover px-1.5 py-0.5 text-xs">NEXT_PUBLIC_MONGODB_ENABLED</code>{' '}
+                      <code className="rounded bg-surface-hover px-1.5 py-0.5 text-xs">
+                        NEXT_PUBLIC_MONGODB_ENABLED
+                      </code>{' '}
                       to use it.
                     </p>
                   ) : focusSession && focusSession.status !== 'ended' ? (
@@ -1227,8 +1234,7 @@ export default function TabPartner() {
                           {formatRemaining(focusSession.status === 'running' ? remainingMs : pausedRemainingMs())}
                         </div>
                         <div className="mt-2 text-xs text-text-muted">
-                          {focusSession.durationMinutes} min session · started with{' '}
-                          {overview.profile.displayName}
+                          {focusSession.durationMinutes} min session · started with {overview.profile.displayName}
                         </div>
                         {focusSession.status === 'paused' && (
                           <div className="mt-2 text-xs text-warning">Timer paused — resume to keep going.</div>
@@ -1358,9 +1364,7 @@ export default function TabPartner() {
                               <p className="truncate text-xs text-text-muted">{item.subtitle}</p>
                             </div>
                             <div className="text-right shrink-0">
-                              <div className="text-[13px] font-semibold text-text tabular-nums">
-                                {item.minutes}m
-                              </div>
+                              <div className="text-[13px] font-semibold text-text tabular-nums">{item.minutes}m</div>
                               <div className="text-[11px] text-text-muted">{relativeTime(item.createdAt)}</div>
                             </div>
                           </div>
@@ -1408,9 +1412,7 @@ export default function TabPartner() {
                       <div>
                         <h2 className="text-[16px] font-semibold tracking-[-0.01em] text-text">Private chat</h2>
                         <div className="flex items-center gap-1.5 text-xs text-text-muted">
-                          <span
-                            className={`h-2 w-2 rounded-full ${statusLabel(presenceStatus).dot}`}
-                          />
+                          <span className={`h-2 w-2 rounded-full ${statusLabel(presenceStatus).dot}`} />
                           {statusLabel(presenceStatus).label} · {partnerName}
                         </div>
                       </div>
@@ -1428,16 +1430,14 @@ export default function TabPartner() {
                             : 'Share a snapshot'
                         }
                       >
-                        {uploadingSnapshot ? (
-                          <FiRefreshCw size={14} className="animate-spin" />
-                        ) : (
-                          <FiImage size={14} />
-                        )}
+                        {uploadingSnapshot ? <FiRefreshCw size={14} className="animate-spin" /> : <FiImage size={14} />}
                         Upload snapshot
                         <input
                           type="file"
                           accept="image/*"
-                          disabled={myPrivacy?.shareSnapshots === false || uploadingSnapshot || !getPublicCloudEnabled()}
+                          disabled={
+                            myPrivacy?.shareSnapshots === false || uploadingSnapshot || !getPublicCloudEnabled()
+                          }
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) void handleUploadSnapshot(file, null);
@@ -1494,7 +1494,11 @@ export default function TabPartner() {
                     </div>
                   </div>
 
-                  <div ref={scrollRef} onScroll={handleChatScroll} className="flex-1 space-y-2 overflow-y-auto py-4 pr-1">
+                  <div
+                    ref={scrollRef}
+                    onScroll={handleChatScroll}
+                    className="flex-1 space-y-2 overflow-y-auto py-4 pr-1"
+                  >
                     {!chatLoading && messages.length > 0 && (
                       <div className="flex justify-center">
                         {chatLoadingOlder ? (
@@ -1571,9 +1575,7 @@ export default function TabPartner() {
                                   ) : (
                                     <FiImage size={36} className="text-text-faint" />
                                   )}
-                                  {m.body ? (
-                                    <p className="text-[13px] leading-snug break-words">{m.body}</p>
-                                  ) : null}
+                                  {m.body ? <p className="text-[13px] leading-snug break-words">{m.body}</p> : null}
                                   {m.mediaStatus === 'exported_and_removed' && (
                                     <p className="text-[11px] text-text-muted">Exported and removed</p>
                                   )}
@@ -1599,7 +1601,10 @@ export default function TabPartner() {
                               >
                                 <span>{timeLabel(m.createdAt)}</span>
                                 {mine && (
-                                  <span className="inline-flex items-center gap-0.5" aria-label={m.delivery === 'sending' ? 'Sending' : m.readAt ? 'Read' : 'Delivered'}>
+                                  <span
+                                    className="inline-flex items-center gap-0.5"
+                                    aria-label={m.delivery === 'sending' ? 'Sending' : m.readAt ? 'Read' : 'Delivered'}
+                                  >
                                     {m.delivery === 'sending' ? (
                                       <FiRefreshCw size={11} className="animate-spin" aria-hidden />
                                     ) : m.readAt ? (
@@ -1669,7 +1674,10 @@ export default function TabPartner() {
                           <FiImage size={16} className="text-accent" />
                         </span>
                         <div>
-                          <h2 id="snapshots-dialog-title" className="text-[16px] font-semibold tracking-[-0.01em] text-text">
+                          <h2
+                            id="snapshots-dialog-title"
+                            className="text-[16px] font-semibold tracking-[-0.01em] text-text"
+                          >
                             Shared snapshots
                           </h2>
                           <p className="text-xs text-text-muted">
@@ -1691,7 +1699,9 @@ export default function TabPartner() {
                     {(snapshotError || snapshotNotice) && (
                       <div
                         className={`border-b px-6 py-2.5 text-xs ${
-                          snapshotError ? 'border-danger/25 bg-danger/10 text-danger' : 'border-border bg-accent-muted/20 text-text-secondary'
+                          snapshotError
+                            ? 'border-danger/25 bg-danger/10 text-danger'
+                            : 'border-border bg-accent-muted/20 text-text-secondary'
                         }`}
                         role={snapshotError ? 'alert' : 'status'}
                         aria-live="polite"
@@ -1724,7 +1734,9 @@ export default function TabPartner() {
                                 aria-pressed={selected}
                                 aria-label={`Toggle snapshot from ${item.senderName}, ${item.createdAt}`}
                                 className={`group relative aspect-square overflow-hidden rounded-2xl border outline-none focus-visible:ring-2 focus-visible:ring-focus-ring transition-colors ${
-                                  selected ? 'border-accent ring-2 ring-accent/40' : 'border-border hover:border-accent/40'
+                                  selected
+                                    ? 'border-accent ring-2 ring-accent/40'
+                                    : 'border-border hover:border-accent/40'
                                 }`}
                               >
                                 {item.url ? (
@@ -1743,7 +1755,11 @@ export default function TabPartner() {
                                   </span>
                                   <span className="block text-[10px] text-white/80">
                                     {timeLabel(item.createdAt)}
-                                    {item.status === 'exported_and_removed' ? ' · removed' : item.exported ? ' · exported' : ''}
+                                    {item.status === 'exported_and_removed'
+                                      ? ' · removed'
+                                      : item.exported
+                                        ? ' · exported'
+                                        : ''}
                                   </span>
                                 </span>
                                 <span className="absolute right-2 top-2 inline-flex h-5 w-5 items-center justify-center rounded-md bg-black/40 text-white">
@@ -1776,9 +1792,7 @@ export default function TabPartner() {
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-divider px-6 py-4">
-                      <div className="text-xs text-text-muted">
-                        {snapshotSelection.size} selected
-                      </div>
+                      <div className="text-xs text-text-muted">{snapshotSelection.size} selected</div>
                       <div className="flex flex-wrap items-center gap-2">
                         <button
                           type="button"

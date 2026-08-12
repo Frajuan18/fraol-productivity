@@ -187,10 +187,16 @@ async function dispatch(
       case 'snapshots.save':
         return ok(await repo.saveSnapshot(userId, String(payload.conversationId), payload.input as never));
       case 'snapshots.export':
-        return ok(await repo.exportSnapshots(userId, String(payload.conversationId), (payload.messageIds as string[]) ?? []));
+        return ok(
+          await repo.exportSnapshots(userId, String(payload.conversationId), (payload.messageIds as string[]) ?? []),
+        );
       case 'snapshots.remove':
         return ok(
-          await repo.removeSnapshotsAfterExport(userId, String(payload.conversationId), (payload.messageIds as string[]) ?? []),
+          await repo.removeSnapshotsAfterExport(
+            userId,
+            String(payload.conversationId),
+            (payload.messageIds as string[]) ?? [],
+          ),
         );
       case 'privacy.maskedPresence':
         return ok(await repo.getMaskedPresence(userId, payload.status as never));

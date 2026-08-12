@@ -75,9 +75,7 @@ export default function AssistantSuggestions({ signals, draft, onApply }: Assist
                   <span className="font-medium text-text">{rec.label}</span>
                   <span className="text-text-secondary">{rec.value}</span>
                 </div>
-                {rec.detail && (
-                  <p className="mt-0.5 text-[11px] leading-snug text-text-muted">{rec.detail}</p>
-                )}
+                {rec.detail && <p className="mt-0.5 text-[11px] leading-snug text-text-muted">{rec.detail}</p>}
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 {rec.canApply && (

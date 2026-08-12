@@ -15,13 +15,7 @@ import { isMongoConfigured, getMongoDb } from '@/lib/mongodb/connection';
 import { COLLECTIONS } from '@/lib/mongodb/collections';
 import { ensureIndexes } from '@/lib/mongodb/indexes';
 import { DEFAULT_PARTNER_PRIVACY } from '@/lib/repositories/ProductivityRepository';
-import type {
-  ConversationDoc,
-  PartnershipDoc,
-  PrivacyDoc,
-  ProfileDoc,
-  UserDoc,
-} from '@/lib/mongodb/types';
+import type { ConversationDoc, PartnershipDoc, PrivacyDoc, ProfileDoc, UserDoc } from '@/lib/mongodb/types';
 
 function parseArgs(argv: string[]): Record<string, string> {
   const args: Record<string, string> = {};
@@ -98,8 +92,7 @@ async function run() {
   }
 
   // Canonical order so the unique (userAId, userBId) index never sees a duplicate pair.
-  const [primary, secondary] =
-    userA._id.localeCompare(userB._id) <= 0 ? [userA, userB] : [userB, userA];
+  const [primary, secondary] = userA._id.localeCompare(userB._id) <= 0 ? [userA, userB] : [userB, userA];
 
   const existingPartnership = await partnerships.findOne({
     $or: [

@@ -35,9 +35,7 @@ export default function CurrentSessionWidget({ bundle, onNavigateTab }: Dashboar
             <FiPlay size={15} className="fill-current" /> Manage session
           </button>
         </div>
-        {completed && (
-          <p className="text-[12px] text-text-muted">This session is already completed.</p>
-        )}
+        {completed && <p className="text-[12px] text-text-muted">This session is already completed.</p>}
       </div>
     );
   }

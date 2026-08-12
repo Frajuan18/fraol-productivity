@@ -81,7 +81,12 @@ export class RepositoryClient implements ProductivityRepository {
     try {
       return await this.call<AppData>('appData.load');
     } catch {
-      return { plans: [], sessions: [], stats: {} as Stats, user: { name: '', streak: 0, totalFocusHours: 0, taskTypes: [] } };
+      return {
+        plans: [],
+        sessions: [],
+        stats: {} as Stats,
+        user: { name: '', streak: 0, totalFocusHours: 0, taskTypes: [] },
+      };
     }
   }
 
@@ -119,7 +124,12 @@ export class RepositoryClient implements ProductivityRepository {
     return this.call<Plan | null>('plans.updatePersonal', { planId, updates });
   }
 
-  async updateCommonPlan(_userId: string, planId: number, updates: Partial<Plan>, expectedUpdatedAt?: string): Promise<Plan | null> {
+  async updateCommonPlan(
+    _userId: string,
+    planId: number,
+    updates: Partial<Plan>,
+    expectedUpdatedAt?: string,
+  ): Promise<Plan | null> {
     return this.call<Plan | null>('plans.updateCommon', { planId, updates, expectedUpdatedAt });
   }
 
@@ -222,7 +232,10 @@ export class RepositoryClient implements ProductivityRepository {
     return this.call<PartnerPrivacySettings>('privacy.get');
   }
 
-  async updatePrivacySettings(_userId: string, updates: Partial<PartnerPrivacySettings>): Promise<PartnerPrivacySettings> {
+  async updatePrivacySettings(
+    _userId: string,
+    updates: Partial<PartnerPrivacySettings>,
+  ): Promise<PartnerPrivacySettings> {
     return this.call<PartnerPrivacySettings>('privacy.update', { updates });
   }
 
@@ -236,7 +249,12 @@ export class RepositoryClient implements ProductivityRepository {
 
   // ---- Paged history ------------------------------------------------------
 
-  async listMessagesPaged(_userId: string, conversationId: string, cursor?: string, limit?: number): Promise<MessagePage> {
+  async listMessagesPaged(
+    _userId: string,
+    conversationId: string,
+    cursor?: string,
+    limit?: number,
+  ): Promise<MessagePage> {
     return this.call<MessagePage>('messages.listPaged', { conversationId, cursor, limit });
   }
 
@@ -284,7 +302,11 @@ export class RepositoryClient implements ProductivityRepository {
     return this.call<ZipExportResult>('snapshots.export', { conversationId, messageIds });
   }
 
-  async removeSnapshotsAfterExport(_userId: string, conversationId: string, messageIds: string[]): Promise<SnapshotRemoveResult> {
+  async removeSnapshotsAfterExport(
+    _userId: string,
+    conversationId: string,
+    messageIds: string[],
+  ): Promise<SnapshotRemoveResult> {
     return this.call<SnapshotRemoveResult>('snapshots.remove', { conversationId, messageIds });
   }
 

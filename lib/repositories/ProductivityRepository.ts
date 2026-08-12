@@ -141,7 +141,12 @@ export interface ProductivityRepository {
   changePlanVisibility(userId: string, planId: number, visibility: PlanVisibility): Promise<Plan | null>;
   getCommonPlans(userId: string): Promise<Plan[]>;
   createCommonPlan(userId: string, input: PlanInput): Promise<Plan>;
-  updateCommonPlan(userId: string, planId: number, updates: Partial<Plan>, expectedUpdatedAt?: string): Promise<Plan | null>;
+  updateCommonPlan(
+    userId: string,
+    planId: number,
+    updates: Partial<Plan>,
+    expectedUpdatedAt?: string,
+  ): Promise<Plan | null>;
 
   // ---- Sessions -----------------------------------------------------------
   getSessions(userId: string): Promise<Session[]>;
@@ -211,7 +216,11 @@ export interface ProductivityRepository {
    */
   exportSnapshots(userId: string, conversationId: string, messageIds: string[]): Promise<ZipExportResult>;
   /** Deletes snapshot binaries/metadata only for items already exported, then inserts system notes. */
-  removeSnapshotsAfterExport(userId: string, conversationId: string, messageIds: string[]): Promise<SnapshotRemoveResult>;
+  removeSnapshotsAfterExport(
+    userId: string,
+    conversationId: string,
+    messageIds: string[],
+  ): Promise<SnapshotRemoveResult>;
 
   // ---- Productivity analytics (Phase 16) -------------------------------------
   /**

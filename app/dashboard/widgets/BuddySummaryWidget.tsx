@@ -85,7 +85,9 @@ export default function BuddySummaryWidget({ onNavigateTab }: DashboardWidgetPro
             <span className="truncate text-[15px] font-semibold text-text">{profile.displayName}</span>
             <span className={`h-2 w-2 rounded-full ${masked ? 'bg-text-muted' : 'bg-accent'}`} aria-hidden="true" />
           </div>
-          <span className="text-[11px] text-text-muted">{masked ? 'Stats kept private' : formatStatus(profile.status)}</span>
+          <span className="text-[11px] text-text-muted">
+            {masked ? 'Stats kept private' : formatStatus(profile.status)}
+          </span>
         </div>
       </div>
 

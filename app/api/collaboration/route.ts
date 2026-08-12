@@ -16,7 +16,10 @@ export async function POST(request: Request) {
   try {
     const body: unknown = await request.json();
     if (!isValidCollabData(body)) {
-      return NextResponse.json({ error: 'Invalid collaboration data payload', code: 'VALIDATION_ERROR' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid collaboration data payload', code: 'VALIDATION_ERROR' },
+        { status: 400 },
+      );
     }
     writeCollabData(body);
     return NextResponse.json({ success: true });

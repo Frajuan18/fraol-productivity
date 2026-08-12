@@ -110,12 +110,7 @@ function CompletionRing({
   );
 }
 
-export default function TabProfile({
-  user,
-  sessions = [],
-  plans = [],
-  onNavigateTab,
-}: TabProfileProps) {
+export default function TabProfile({ user, sessions = [], plans = [], onNavigateTab }: TabProfileProps) {
   const router = useRouter();
   const reduced = useReducedMotion();
   const { theme, toggleTheme } = useTheme();
@@ -215,9 +210,7 @@ export default function TabProfile({
   const bestDaySupport = hasSessions
     ? 'Your strongest focus day'
     : 'Complete sessions across more days to find your pattern.';
-  const completionSupport = hasSessions
-    ? 'Based on completed sessions'
-    : 'Complete a session to calculate your rate.';
+  const completionSupport = hasSessions ? 'Based on completed sessions' : 'Complete a session to calculate your rate.';
   const plansDoneSupport = hasPlans
     ? `${stats.planCounts.completed} of ${stats.planCounts.total} completed`
     : 'Create a plan to start tracking progress.';
@@ -347,7 +340,10 @@ export default function TabProfile({
                     <AnimatedNumber value={stats.sessionCounts.total} />
                   </div>
                   <div className="text-xs text-text-secondary flex items-center justify-center gap-1 mt-1">
-                    <FiActivity size={11} className="text-text-muted group-hover:text-accent transition-colors duration-200" />
+                    <FiActivity
+                      size={11}
+                      className="text-text-muted group-hover:text-accent transition-colors duration-200"
+                    />
                     Sessions
                   </div>
                 </button>
@@ -374,7 +370,10 @@ export default function TabProfile({
                     <span className="text-base text-text-secondary">%</span>
                   </div>
                   <div className="text-xs text-text-secondary flex items-center justify-center gap-1 mt-1">
-                    <FiTrendingUp size={11} className="text-text-muted group-hover:text-accent transition-colors duration-200" />
+                    <FiTrendingUp
+                      size={11}
+                      className="text-text-muted group-hover:text-accent transition-colors duration-200"
+                    />
                     Success
                   </div>
                 </button>
@@ -642,7 +641,8 @@ export default function TabProfile({
                         key: 'shareSnapshots' as const,
                         icon: FiImage,
                         title: 'Allow snapshot sharing',
-                        description: 'Let you send snapshots into the shared chat. Existing snapshots are never removed.',
+                        description:
+                          'Let you send snapshots into the shared chat. Existing snapshots are never removed.',
                       },
                     ].map((control) => {
                       const enabled = !!privacy?.[control.key];
@@ -715,7 +715,11 @@ export default function TabProfile({
                   </div>
 
                   {privacySaved && (
-                    <div className="mt-3 flex items-center gap-1.5 text-xs text-success" role="status" aria-live="polite">
+                    <div
+                      className="mt-3 flex items-center gap-1.5 text-xs text-success"
+                      role="status"
+                      aria-live="polite"
+                    >
                       <FiCheck size={12} className="shrink-0" />
                       <span>Privacy updated</span>
                     </div>

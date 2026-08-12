@@ -22,15 +22,7 @@ export interface WidgetCardProps {
   children: ReactNode;
 }
 
-function IconButton({
-  label,
-  onClick,
-  children,
-}: {
-  label: string;
-  onClick: () => void;
-  children: ReactNode;
-}) {
+function IconButton({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
   return (
     <button
       type="button"
@@ -69,9 +61,7 @@ export default function WidgetCard({
   return (
     <section
       aria-label={title}
-      className={`card-glass h-full flex flex-col rounded-[22px] ${
-        editing ? 'ring-1 ring-focus-ring/60' : ''
-      }`}
+      className={`card-glass h-full flex flex-col rounded-[22px] ${editing ? 'ring-1 ring-focus-ring/60' : ''}`}
     >
       <header className="flex items-center gap-2 px-5 pt-4 pb-3">
         {dragHandle}

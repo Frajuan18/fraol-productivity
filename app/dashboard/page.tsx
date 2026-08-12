@@ -24,7 +24,9 @@ function DashboardContent() {
   const repository = getRepository();
   const isMongoMode = repository.mode === 'mongodb';
   const currentUserId = useRef('demo-user');
-  const [user, setUser] = useState<string | null>(() => (typeof window !== 'undefined' ? sessionStorage.getItem('user') : null));
+  const [user, setUser] = useState<string | null>(() =>
+    typeof window !== 'undefined' ? sessionStorage.getItem('user') : null,
+  );
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window === 'undefined') return 'overview';
     const params = new URLSearchParams(window.location.search);

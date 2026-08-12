@@ -88,9 +88,7 @@ export default function UpcomingPlansWidget({ bundle, onNavigateTab, onUpdatePla
 
       <div className="mt-auto pt-3">
         {todayCount === 0 && nextPlan && (
-          <p className="mb-2 text-[12px] text-text-muted truncate">
-            Next: {nextPlan.title}
-          </p>
+          <p className="mb-2 text-[12px] text-text-muted truncate">Next: {nextPlan.title}</p>
         )}
         <button
           onClick={() => onNavigateTab('plans')}

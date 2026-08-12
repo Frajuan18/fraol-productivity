@@ -31,10 +31,7 @@ export async function proxy(request: NextRequest) {
   const token = readSessionCookie(request);
   const session = token ? await validateSessionToken(token) : null;
   if (!session) {
-    return NextResponse.json(
-      { ok: false, error: 'Authentication required.', code: 'UNAUTHORIZED' },
-      { status: 401 },
-    );
+    return NextResponse.json({ ok: false, error: 'Authentication required.', code: 'UNAUTHORIZED' }, { status: 401 });
   }
 
   return NextResponse.next();

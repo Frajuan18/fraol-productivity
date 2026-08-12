@@ -9,13 +9,7 @@ import type {
   SharedFocusDoc,
   WeeklyAnalyticsDoc,
 } from '@/lib/mongodb/types';
-import {
-  aggregateDay,
-  groupByWeek,
-  isAnalyzableDay,
-  rollupMonth,
-  rollupWeek,
-} from '@/lib/analytics/aggregate';
+import { aggregateDay, groupByWeek, isAnalyzableDay, rollupMonth, rollupWeek } from '@/lib/analytics/aggregate';
 import { addDays, monthKey, todayKey } from '@/lib/analytics/periods';
 import { runGenerators } from '@/lib/analytics/insights';
 import type { AnalyticsResult, InsightContext } from '@/lib/analytics/types';
@@ -51,8 +45,14 @@ async function loadRaw(userId: string): Promise<{
 }> {
   const db = await getMongoDb();
   const [sessions, plans, memberships, sharedSessions] = await Promise.all([
-    db.collection<FocusSessionDoc>(COLLECTIONS.FOCUS_SESSIONS).find({ userId, date: { $gte: CUTOFF } }).toArray(),
-    db.collection<PlanDoc>(COLLECTIONS.PLANS).find({ planType: 'personal', ownerId: userId, date: { $gte: CUTOFF } }).toArray(),
+    db
+      .collection<FocusSessionDoc>(COLLECTIONS.FOCUS_SESSIONS)
+      .find({ userId, date: { $gte: CUTOFF } })
+      .toArray(),
+    db
+      .collection<PlanDoc>(COLLECTIONS.PLANS)
+      .find({ planType: 'personal', ownerId: userId, date: { $gte: CUTOFF } })
+      .toArray(),
     db
       .collection<{ _id: string; planId: number }>(COLLECTIONS.PLAN_MEMBERS)
       .find({ userId })
@@ -84,22 +84,32 @@ async function loadRaw(userId: string): Promise<{
   return { sessions, plans: [...plans, ...commonPlans], sharedByDay };
 }
 
-async function persist(dailies: DailyAnalyticsDoc[], weeklies: WeeklyAnalyticsDoc[], monthlies: MonthlyAnalyticsDoc[]): Promise<void> {
+async function persist(
+  dailies: DailyAnalyticsDoc[],
+  weeklies: WeeklyAnalyticsDoc[],
+  monthlies: MonthlyAnalyticsDoc[],
+): Promise<void> {
   const db = await getMongoDb();
   await Promise.all([
     (async () => {
       for (const doc of dailies) {
-        await db.collection<DailyAnalyticsDoc>(COLLECTIONS.DAILY_ANALYTICS).replaceOne({ _id: doc._id }, doc, { upsert: true });
+        await db
+          .collection<DailyAnalyticsDoc>(COLLECTIONS.DAILY_ANALYTICS)
+          .replaceOne({ _id: doc._id }, doc, { upsert: true });
       }
     })(),
     (async () => {
       for (const doc of weeklies) {
-        await db.collection<WeeklyAnalyticsDoc>(COLLECTIONS.WEEKLY_ANALYTICS).replaceOne({ _id: doc._id }, doc, { upsert: true });
+        await db
+          .collection<WeeklyAnalyticsDoc>(COLLECTIONS.WEEKLY_ANALYTICS)
+          .replaceOne({ _id: doc._id }, doc, { upsert: true });
       }
     })(),
     (async () => {
       for (const doc of monthlies) {
-        await db.collection<MonthlyAnalyticsDoc>(COLLECTIONS.MONTHLY_ANALYTICS).replaceOne({ _id: doc._id }, doc, { upsert: true });
+        await db
+          .collection<MonthlyAnalyticsDoc>(COLLECTIONS.MONTHLY_ANALYTICS)
+          .replaceOne({ _id: doc._id }, doc, { upsert: true });
       }
     })(),
   ]);

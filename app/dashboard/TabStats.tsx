@@ -317,7 +317,17 @@ function ProgressRing({
   );
 }
 
-function MiniBar({ value, color = 'var(--accent)', height = 4, reduced = false }: { value: number; color?: string; height?: number; reduced?: boolean | null }) {
+function MiniBar({
+  value,
+  color = 'var(--accent)',
+  height = 4,
+  reduced = false,
+}: {
+  value: number;
+  color?: string;
+  height?: number;
+  reduced?: boolean | null;
+}) {
   return (
     <div className="w-full bg-surface-hover rounded-full overflow-hidden" style={{ height }}>
       <motion.div
@@ -705,7 +715,8 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
     {
       label: 'Best day',
       value: bestBucket && bestBucket.minutes > 0 ? bestBucket.axis : '—',
-      sub: bestBucket && bestBucket.minutes > 0 ? `${formatMinutesAsHoursMinutes(bestBucket.minutes)} focused` : 'No data',
+      sub:
+        bestBucket && bestBucket.minutes > 0 ? `${formatMinutesAsHoursMinutes(bestBucket.minutes)} focused` : 'No data',
     },
     {
       label: 'Sessions',
@@ -723,7 +734,8 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
     successRate >= 80 ? 'Excellent' : successRate >= 60 ? 'Good' : successRate >= 40 ? 'Fair' : 'Needs focus';
 
   const insights = useMemo(() => {
-    if (rangeSessions.length === 0) return [] as { icon: ComponentType<{ size?: number; className?: string }>; text: string; sub: string }[];
+    if (rangeSessions.length === 0)
+      return [] as { icon: ComponentType<{ size?: number; className?: string }>; text: string; sub: string }[];
     const list: { icon: ComponentType<{ size?: number; className?: string }>; text: string; sub: string }[] = [];
     if (bestBucket && bestBucket.minutes > 0) {
       list.push({
@@ -771,10 +783,7 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
   return (
     <div className="space-y-8">
       {/* ===== Header ===== */}
-      <motion.header
-        {...fade(0)}
-        className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between"
-      >
+      <motion.header {...fade(0)} className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <div className="text-[13px] text-text-muted">{formatLongDate(new Date())}</div>
           <h1 className="mt-1.5 text-[34px] sm:text-[40px] font-semibold leading-[1.1] tracking-[-0.025em] text-text">
@@ -886,9 +895,7 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
           title="Productivity insights"
           right={
             analytics ? (
-              <span className="text-[11px] text-text-muted">
-                {analytics.daily.length} days analysed
-              </span>
+              <span className="text-[11px] text-text-muted">{analytics.daily.length} days analysed</span>
             ) : undefined
           }
         />
@@ -896,16 +903,16 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
           <div className="flex items-start gap-3 mt-5">
             <FiInfo className="text-text-muted mt-0.5 shrink-0" size={16} />
             <p className="text-sm text-text-muted leading-relaxed">
-              Insights are computed from your focus history when analytics are enabled. Add a few
-              sessions and plans to start seeing patterns.
+              Insights are computed from your focus history when analytics are enabled. Add a few sessions and plans to
+              start seeing patterns.
             </p>
           </div>
         ) : analytics.insights.length === 0 ? (
           <div className="flex items-start gap-3 mt-5">
             <FiInfo className="text-text-muted mt-0.5 shrink-0" size={16} />
             <p className="text-sm text-text-muted leading-relaxed">
-              Not enough history yet to detect patterns. Keep logging sessions and plans — insights
-              will appear automatically.
+              Not enough history yet to detect patterns. Keep logging sessions and plans — insights will appear
+              automatically.
             </p>
           </div>
         ) : (
@@ -920,7 +927,9 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm font-medium text-text">{insight.title}</p>
-                      <span className={`text-[10px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5 ${style.pill}`}>
+                      <span
+                        className={`text-[10px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5 ${style.pill}`}
+                      >
                         {SEVERITY_LABELS[insight.severity]}
                       </span>
                     </div>
@@ -999,7 +1008,9 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
                 <div className="flex items-center gap-2 text-xs text-text-secondary">
                   <FiClock size={12} className="shrink-0 text-text-secondary" />
                   <span className="min-w-0">
-                    {noSessions ? 'Start a session to get a score' : `Based on ${rangeCounts.total} session${rangeCounts.total !== 1 ? 's' : ''}`}
+                    {noSessions
+                      ? 'Start a session to get a score'
+                      : `Based on ${rangeCounts.total} session${rangeCounts.total !== 1 ? 's' : ''}`}
                   </span>
                 </div>
                 <MiniBar value={successRate} height={4} reduced={reduced} />
@@ -1069,7 +1080,9 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
               {quickCells.map((cell) => (
                 <div key={cell.label} className="bg-surface p-4">
                   <div className="text-xs text-text-muted">{cell.label}</div>
-                  <div className="mt-1.5 text-[22px] font-semibold tracking-tight text-text tabular-nums">{cell.value}</div>
+                  <div className="mt-1.5 text-[22px] font-semibold tracking-tight text-text tabular-nums">
+                    {cell.value}
+                  </div>
                   <div className="mt-0.5 text-[10px] text-text-muted">{cell.sub}</div>
                 </div>
               ))}
@@ -1100,7 +1113,9 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
                   {hasAnyData ? `No plans in this range.` : 'No plans yet.'}
                 </p>
                 <p className="mt-1 text-sm text-text-muted">
-                  {hasAnyData ? 'Switch ranges, or create a new plan.' : 'Create a plan to give your focus a clear direction.'}
+                  {hasAnyData
+                    ? 'Switch ranges, or create a new plan.'
+                    : 'Create a plan to give your focus a clear direction.'}
                 </p>
                 <button
                   onClick={() => onNavigateTab?.('plans')}

@@ -1,11 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import {
-  ConflictError,
-  RepositoryError,
-  getErrorCode,
-  toErrorResponse,
-} from '@/lib/repositories/errors';
+import { ConflictError, RepositoryError, getErrorCode, toErrorResponse } from '@/lib/repositories/errors';
 import { assertNotStale } from '@/lib/repositories/planConcurrency';
 
 describe('RepositoryError', () => {
@@ -86,15 +81,11 @@ describe('assertNotStale', () => {
   });
 
   it('allows a write when the tokens match', () => {
-    expect(() =>
-      assertNotStale('2026-01-02T00:00:00.000Z', '2026-01-02T00:00:00.000Z'),
-    ).not.toThrow();
+    expect(() => assertNotStale('2026-01-02T00:00:00.000Z', '2026-01-02T00:00:00.000Z')).not.toThrow();
   });
 
   it('rejects a stale write with a CONFLICT error', () => {
-    expect(() => assertNotStale('2026-01-03T00:00:00.000Z', '2026-01-02T00:00:00.000Z')).toThrow(
-      ConflictError,
-    );
+    expect(() => assertNotStale('2026-01-03T00:00:00.000Z', '2026-01-02T00:00:00.000Z')).toThrow(ConflictError);
   });
 
   it('rejects when the stored token is missing but one was expected', () => {

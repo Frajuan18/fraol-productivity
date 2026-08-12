@@ -124,20 +124,27 @@ export const SessionHistoryList = memo(function SessionHistoryList({
                                 </div>
                                 <div>
                                   <dt className="text-text-muted">Start</dt>
-                                  <dd className="mt-0.5 text-text font-medium tabular-nums">{session.startTime || '—'}</dd>
+                                  <dd className="mt-0.5 text-text font-medium tabular-nums">
+                                    {session.startTime || '—'}
+                                  </dd>
                                 </div>
                                 <div>
                                   <dt className="text-text-muted">End</dt>
-                                  <dd className="mt-0.5 text-text font-medium tabular-nums">{session.endTime || '—'}</dd>
+                                  <dd className="mt-0.5 text-text font-medium tabular-nums">
+                                    {session.endTime || '—'}
+                                  </dd>
                                 </div>
                                 <div>
                                   <dt className="text-text-muted">Status</dt>
-                                  <dd className="mt-0.5 text-text font-medium">{getSessionStatusLabel(session.status)}</dd>
+                                  <dd className="mt-0.5 text-text font-medium">
+                                    {getSessionStatusLabel(session.status)}
+                                  </dd>
                                 </div>
                               </dl>
                               {session.actualDuration && (
                                 <div className="mt-3 pt-3 border-t border-divider text-xs text-text-muted">
-                                  Actual focus time: <span className="text-text font-medium tabular-nums">{session.actualDuration}</span>
+                                  Actual focus time:{' '}
+                                  <span className="text-text font-medium tabular-nums">{session.actualDuration}</span>
                                 </div>
                               )}
                               <div className="mt-3 flex items-center gap-2">
