@@ -543,7 +543,7 @@ export default function PlanFromFileCreator({
             type="button"
             onClick={() => setCalendarCursor(new Date(year, month - 1, 1))}
             aria-label="Previous month"
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-text-secondary hover:text-text hover:bg-surface transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-text-secondary hover:text-text hover:bg-surface transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
           >
             <FiChevronLeft size={14} />
           </button>
@@ -554,7 +554,7 @@ export default function PlanFromFileCreator({
             type="button"
             onClick={() => setCalendarCursor(new Date(year, month + 1, 1))}
             aria-label="Next month"
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-text-secondary hover:text-text hover:bg-surface transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-text-secondary hover:text-text hover:bg-surface transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
           >
             <FiChevronRight size={14} />
           </button>
@@ -579,7 +579,7 @@ export default function PlanFromFileCreator({
                   setCalendarOpen(false);
                 }}
                 aria-pressed={isSelected}
-                className={`h-7 rounded-lg text-[11px] font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none ${
+                className={`h-8 rounded-lg text-[11px] font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none ${
                   isSelected
                     ? 'bg-accent text-accent-contrast'
                     : isToday

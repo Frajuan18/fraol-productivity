@@ -520,7 +520,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                     aria-checked={theme === 'light'}
                     aria-label="Appearance mode"
                     onClick={handleToggleTheme}
-                    className={`relative w-12 h-7 rounded-full shrink-0 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                    className={`relative w-12 h-8 rounded-full shrink-0 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
                       theme === 'light' ? 'bg-accent' : 'bg-border-hover'
                     }`}
                   >
@@ -605,7 +605,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                         <div className="h-3 w-36 rounded-full bg-surface-hover" />
                         <div className="h-2.5 w-56 rounded-full bg-surface-hover/70" />
                       </div>
-                      <div className="w-12 h-7 rounded-full bg-surface-hover" />
+                      <div className="w-12 h-8 rounded-full bg-surface-hover" />
                     </div>
                   ))}
                 </div>
@@ -665,7 +665,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                             aria-label={control.title}
                             disabled={!!privacyBusy}
                             onClick={() => togglePrivacy(control.key)}
-                            className={`relative w-12 h-7 rounded-full shrink-0 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:opacity-60 ${
+                            className={`relative w-12 h-8 rounded-full shrink-0 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:opacity-60 ${
                               enabled ? 'bg-accent' : 'bg-border-hover'
                             }`}
                           >
@@ -753,7 +753,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                 <button
                   ref={signOutRef}
                   onClick={openDialog}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-danger/25 bg-danger-muted/40 hover:bg-danger-muted px-3.5 h-9 text-[13px] font-semibold text-danger transition-colors duration-150 shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-danger/25 bg-danger-muted/40 hover:bg-danger-muted px-3.5 h-10 text-[13px] font-semibold text-danger transition-colors duration-150 shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                 >
                   <FiLogOut size={14} /> Sign Out
                 </button>

@@ -358,7 +358,7 @@ function RangeControl({ range, onChange }: { range: RangeKey; onChange: (range: 
             type="button"
             onClick={() => onChange(r.key)}
             aria-pressed={active}
-            className={`relative rounded-lg px-3 h-9 text-[13px] font-medium transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none ${
+            className={`relative rounded-lg px-3 h-10 text-[13px] font-medium transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none ${
               active ? 'text-text' : 'text-text-secondary hover:text-text'
             }`}
           >
@@ -386,7 +386,7 @@ function InfoTip({ text }: { text: string }) {
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-label="More about this metric"
-        className="flex items-center justify-center w-5 h-5 rounded-full text-text-muted hover:text-text hover:bg-surface-hover transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
+        className="flex items-center justify-center w-7 h-7 rounded-full text-text-muted hover:text-text hover:bg-surface-hover transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
       >
         <FiInfo size={13} />
       </button>

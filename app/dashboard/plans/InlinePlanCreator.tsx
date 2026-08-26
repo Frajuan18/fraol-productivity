@@ -449,7 +449,7 @@ export default function InlinePlanCreator({
                       type="button"
                       onClick={() => setTitleEditing(true)}
                       aria-label="Edit plan title"
-                      className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl text-text-muted opacity-0 group-hover/title:opacity-100 focus-visible:opacity-100 hover:text-text hover:bg-surface-hover transition-all duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
+                      className="shrink-0 w-10 h-10 flex items-center justify-center rounded-xl text-text-muted opacity-0 group-hover/title:opacity-100 focus-visible:opacity-100 hover:text-text hover:bg-surface-hover transition-all duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
                     >
                       <FiEdit3 size={15} />
                     </button>
@@ -511,7 +511,7 @@ export default function InlinePlanCreator({
             {/* Structure */}
             <div>
               <span className="text-xs text-text-secondary block mb-2">How do you want to organize it?</span>
-              <div className="grid grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 {STRUCTURES.map((opt) => {
                   const selected = planStyle === opt.id;
                   const OptIcon = opt.icon;
@@ -574,7 +574,7 @@ export default function InlinePlanCreator({
                           />
                           <button
                             onClick={() => handleRemoveStep(step.id)}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center text-text-muted hover:text-danger hover:bg-danger/10 transition-all shrink-0"
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-danger hover:bg-danger/10 transition-all shrink-0"
                             aria-label={`Remove step ${idx + 1}`}
                           >
                             <FiTrash2 size={13} />
@@ -629,7 +629,7 @@ export default function InlinePlanCreator({
                                 onClick={() => toggleDay(i)}
                                 aria-pressed={habitDays.includes(i)}
                                 aria-label={`Day ${d}`}
-                                className={`w-9 h-9 rounded-xl text-xs font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none ${
+                                className={`w-10 h-10 rounded-xl text-xs font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none ${
                                   habitDays.includes(i)
                                     ? 'bg-accent text-accent-contrast'
                                     : 'bg-surface-hover text-text-muted border border-border-hover hover:border-border'
@@ -762,7 +762,7 @@ export default function InlinePlanCreator({
               <button
                 onClick={handleSubmit}
                 disabled={!canSubmit || isSubmitting}
-                className="inline-flex items-center gap-2 rounded-[14px] bg-accent hover:bg-accent-hover active:scale-[0.98] text-accent-contrast px-5 h-[42px] text-sm font-semibold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-accent focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
+                className="inline-flex items-center gap-2 rounded-[14px] bg-accent hover:bg-accent-hover active:scale-[0.98] text-accent-contrast px-5 h-11 text-sm font-semibold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-accent focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
               >
                 {isSubmitting ? (
                   <>

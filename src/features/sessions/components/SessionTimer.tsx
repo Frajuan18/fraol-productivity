@@ -569,7 +569,7 @@ export const SessionTimer = memo(function SessionTimer({
                           {isCustom && (
                             <button
                               onClick={() => onRemoveTaskType(task)}
-                              className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-danger text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:opacity-100 focus-visible:opacity-100 transition-opacity outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                              className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-danger text-white rounded-full flex items-center justify-center opacity-60 hover:opacity-100 focus-visible:opacity-100 transition-opacity outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
                               aria-label={`Remove ${task}`}
                               title={`Remove ${task}`}
                             >
@@ -614,7 +614,7 @@ export const SessionTimer = memo(function SessionTimer({
 
                   {!showCustomTime ? (
                     <>
-                      <div className="grid grid-cols-4 gap-2" role="group" aria-label="Focus durations">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" role="group" aria-label="Focus durations">
                         {PRESET_DURATIONS.map((preset) => {
                           const isActive =
                             Math.floor(timer.totalSeconds / 3600) === preset.hours &&
@@ -678,7 +678,7 @@ export const SessionTimer = memo(function SessionTimer({
                         <div className="mt-3 flex items-center justify-center gap-2.5">
                           <button
                             onClick={() => adjustCustomValue(-1)}
-                            className="w-9 h-9 flex items-center justify-center rounded-[10px] bg-surface border border-border text-text-secondary hover:text-text hover:border-border-hover transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                            className="w-10 h-10 flex items-center justify-center rounded-[10px] bg-surface border border-border text-text-secondary hover:text-text hover:border-border-hover transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
                             aria-label={`Decrease ${customUnit}`}
                           >
                             <FiMinus size={13} aria-hidden />
@@ -699,7 +699,7 @@ export const SessionTimer = memo(function SessionTimer({
                           </div>
                           <button
                             onClick={() => adjustCustomValue(1)}
-                            className="w-9 h-9 flex items-center justify-center rounded-[10px] bg-surface border border-border text-text-secondary hover:text-text hover:border-border-hover transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                            className="w-10 h-10 flex items-center justify-center rounded-[10px] bg-surface border border-border text-text-secondary hover:text-text hover:border-border-hover transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
                             aria-label={`Increase ${customUnit}`}
                           >
                             <FiPlus size={13} aria-hidden />
@@ -714,7 +714,7 @@ export const SessionTimer = memo(function SessionTimer({
                                 setCustomUnit('minutes');
                                 setCustomValue(m);
                               }}
-                              className="h-8 px-2.5 rounded-lg bg-surface border border-border text-text-secondary hover:text-text text-[12px] font-medium tabular-nums transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                              className="h-9 px-2.5 rounded-lg bg-surface border border-border text-text-secondary hover:text-text text-[12px] font-medium tabular-nums transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
                             >
                               {m}m
                             </button>
@@ -724,13 +724,13 @@ export const SessionTimer = memo(function SessionTimer({
                         <div className="mt-3 flex items-center justify-end gap-2">
                           <button
                             onClick={() => setShowCustomTime(false)}
-                            className="h-9 px-3 rounded-[10px] text-[12px] font-medium bg-surface border border-border text-text-secondary hover:text-text transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                            className="h-10 px-3 rounded-[10px] text-[12px] font-medium bg-surface border border-border text-text-secondary hover:text-text transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
                           >
                             Cancel
                           </button>
                           <button
                             onClick={applyCustomDuration}
-                            className="h-9 px-3 rounded-[10px] text-[12px] font-semibold bg-accent hover:bg-accent-hover text-accent-contrast transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                            className="h-10 px-3 rounded-[10px] text-[12px] font-semibold bg-accent hover:bg-accent-hover text-accent-contrast transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
                           >
                             Apply duration
                           </button>
@@ -921,7 +921,7 @@ export const SessionTimer = memo(function SessionTimer({
               <div className="relative mt-6" role="timer" aria-live="off" aria-label="Remaining time">
                 <svg
                   viewBox="0 0 120 120"
-                  className="w-[280px] h-[280px] sm:w-[316px] sm:h-[316px] -rotate-90"
+                  className="w-[min(280px,calc(100vw-80px))] h-[min(280px,calc(100vw-80px))] sm:w-[316px] sm:h-[316px] -rotate-90"
                   aria-hidden="true"
                 >
                   <circle cx="60" cy="60" r={ringRadius} fill="none" stroke="var(--border)" strokeWidth="3.5" />
@@ -1003,14 +1003,14 @@ export const SessionTimer = memo(function SessionTimer({
                   <button
                     key={opt.label}
                     onClick={() => handleAddTime(opt.seconds)}
-                    className="h-9 px-3 rounded-lg bg-surface-hover border border-border text-text-secondary hover:text-text transition-colors text-[13px] font-medium focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
+                    className="h-10 px-3 rounded-lg bg-surface-hover border border-border text-text-secondary hover:text-text transition-colors text-[13px] font-medium focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
                   >
                     {opt.label}
                   </button>
                 ))}
                 <button
                   onClick={timer.reset}
-                  className="w-9 h-9 flex items-center justify-center rounded-lg bg-surface-hover border border-border text-text-secondary hover:text-text transition-colors focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
+                  className="w-10 h-10 flex items-center justify-center rounded-lg bg-surface-hover border border-border text-text-secondary hover:text-text transition-colors focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
                   title="Reset time"
                   aria-label="Reset time"
                 >

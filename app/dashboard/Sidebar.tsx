@@ -223,7 +223,7 @@ function SidebarContent({
             data-close
             onClick={onNavigate}
             aria-label="Close menu"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary outline-none transition-colors duration-150 hover:bg-surface-hover hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-text-secondary outline-none transition-colors duration-150 hover:bg-surface-hover hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring"
           >
             <FiX size={20} />
           </button>
@@ -316,7 +316,7 @@ function SidebarContent({
               onClick={onToggleCollapsed}
               aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary outline-none transition-colors duration-150 hover:bg-surface-hover hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-text-secondary outline-none transition-colors duration-150 hover:bg-surface-hover hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring"
             >
               <FiSidebar size={17} />
             </button>
@@ -325,7 +325,7 @@ function SidebarContent({
             {!isDesktop && <ThemeToggle />}
             <button
               aria-label="Notifications"
-              className="relative flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary outline-none transition-colors duration-150 hover:bg-surface-hover hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring"
+              className="relative flex h-10 w-10 items-center justify-center rounded-lg text-text-secondary outline-none transition-colors duration-150 hover:bg-surface-hover hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring"
             >
               <FiBell size={17} />
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-danger" />
@@ -334,7 +334,7 @@ function SidebarContent({
               onClick={handleLogout}
               aria-label="Sign out"
               title="Sign Out"
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary outline-none transition-colors duration-150 hover:bg-danger-muted hover:text-danger focus-visible:ring-2 focus-visible:ring-focus-ring"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-text-secondary outline-none transition-colors duration-150 hover:bg-danger-muted hover:text-danger focus-visible:ring-2 focus-visible:ring-focus-ring"
             >
               <FiLogOut size={17} />
             </button>
@@ -536,7 +536,7 @@ export default function Sidebar({
           ref={menuBtnRef}
           onClick={() => setMobileOpen(true)}
           aria-label="Open menu"
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary outline-none transition-colors duration-150 hover:bg-surface-hover hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring"
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-text-secondary outline-none transition-colors duration-150 hover:bg-surface-hover hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring"
         >
           <FiMenu size={20} />
         </button>
@@ -550,7 +550,7 @@ export default function Sidebar({
           <ThemeToggle />
           <button
             aria-label="Notifications"
-            className="relative flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary outline-none transition-colors duration-150 hover:bg-surface-hover hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring"
+            className="relative flex h-10 w-10 items-center justify-center rounded-lg text-text-secondary outline-none transition-colors duration-150 hover:bg-surface-hover hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring"
           >
             <FiBell size={17} />
             <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-danger" />

@@ -922,7 +922,7 @@ export default function TabPartner() {
   ];
 
   const sectionClass = (active: boolean) =>
-    `flex items-center gap-2 rounded-[10px] px-3.5 h-9 text-[13px] font-semibold transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+    `flex items-center gap-2 rounded-[10px] px-3.5 h-10 text-[13px] font-semibold transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
       active
         ? 'bg-surface-raised text-accent shadow-[var(--card-shadow)]'
         : 'text-text-secondary hover:text-text hover:bg-surface-hover/60'
@@ -1467,8 +1467,8 @@ export default function TabPartner() {
                                 <span className="w-9 h-9 shrink-0 rounded-xl bg-accent-muted flex items-center justify-center">
                                   <FiUsers size={15} className="text-accent" />
                                 </span>
-                                <div className="min-w-0 flex-1 basis-52">
-                                  <div className="flex items-center gap-2">
+                                <div className="min-w-0 flex-1 basis-0 sm:basis-52">
+                                  <div className="flex flex-wrap items-center gap-2">
                                     <span className="truncate text-[14px] font-medium text-text">{plan.title}</span>
                                     <span
                                       className={`shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${
@@ -1502,7 +1502,7 @@ export default function TabPartner() {
                                     type="button"
                                     disabled={planBusy !== null}
                                     onClick={() => void handleCycleCommonStatus(plan)}
-                                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-raised hover:bg-surface-hover hover:border-border-hover px-2.5 h-8 text-xs font-semibold text-text-secondary hover:text-text transition-colors duration-150 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-raised hover:bg-surface-hover hover:border-border-hover px-2.5 h-9 text-xs font-semibold text-text-secondary hover:text-text transition-colors duration-150 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                                   >
                                     <FiRefreshCw size={12} /> Advance
                                   </button>
@@ -1511,7 +1511,7 @@ export default function TabPartner() {
                                       type="button"
                                       disabled={planBusy !== null}
                                       onClick={() => void handleDeleteCommonPlan(plan)}
-                                      className="inline-flex items-center gap-1.5 rounded-lg border border-danger/25 bg-danger/10 hover:bg-danger/15 hover:border-danger/30 px-2.5 h-8 text-xs font-semibold text-danger transition-colors duration-150 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                                      className="inline-flex items-center gap-1.5 rounded-lg border border-danger/25 bg-danger/10 hover:bg-danger/15 hover:border-danger/30 px-2.5 h-9 text-xs font-semibold text-danger transition-colors duration-150 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                                     >
                                       <FiTrash2 size={12} /> Delete
                                     </button>
@@ -1611,13 +1611,13 @@ export default function TabPartner() {
                     </div>
                   ) : focusSession && focusSession.status !== 'ended' ? (
                     <div className="mt-6">
-                      <div className="relative rounded-[20px] border border-accent/20 bg-gradient-to-b from-accent-muted/40 to-accent-muted/10 px-6 py-10 text-center overflow-hidden">
+                      <div className="relative rounded-[20px] border border-accent/20 bg-gradient-to-b from-accent-muted/40 to-accent-muted/10 px-4 sm:px-6 py-6 sm:py-10 text-center overflow-hidden">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,var(--accent-muted),transparent_70%)] opacity-40" />
                         <div className="relative">
                           <div className="text-[11px] uppercase tracking-[0.14em] font-semibold text-text-muted">
                             {focusSession.status === 'paused' ? 'Paused' : 'Focusing together'}
                           </div>
-                          <div className="mt-3 text-[56px] sm:text-[68px] font-bold tracking-tight text-text tabular-nums leading-none">
+                          <div className="mt-3 text-[44px] sm:text-[56px] md:text-[68px] font-bold tracking-tight text-text tabular-nums leading-none">
                             {formatRemaining(focusSession.status === 'running' ? remainingMs : pausedRemainingMs())}
                           </div>
                           <div className="mt-3 flex items-center justify-center gap-2 text-xs text-text-muted">
@@ -1723,7 +1723,7 @@ export default function TabPartner() {
                       type="button"
                       onClick={() => void loadActivity()}
                       disabled={activityLoading}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-3 h-9 text-[13px] font-semibold text-text-secondary hover:text-text hover:bg-surface-hover hover:border-border-hover transition-colors duration-150 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-3 h-10 text-[13px] font-semibold text-text-secondary hover:text-text hover:bg-surface-hover hover:border-border-hover transition-colors duration-150 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                     >
                       <FiRefreshCw size={13} className={activityLoading ? 'animate-spin' : ''} />
                       Refresh
@@ -1799,7 +1799,7 @@ export default function TabPartner() {
               )}
 
               {section === 'chat' && (
-                <motion.section {...fade(0.08)} className={`${softCard} flex h-[560px] flex-col`}>
+                <motion.section {...fade(0.08)} className={`${softCard} flex h-[min(560px,70vh)] flex-col`}>
                   <div className="flex items-center justify-between gap-3 border-b border-divider pb-4">
                     <div className="flex items-center gap-2.5">
                       <span className="w-10 h-10 rounded-xl bg-accent-muted flex items-center justify-center">
@@ -1818,7 +1818,7 @@ export default function TabPartner() {
                         type="button"
                         onClick={() => void openWebcam()}
                         disabled={myPrivacy?.shareSnapshots === false}
-                        className={`inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-3 h-9 text-[13px] font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:opacity-40 ${
+                        className={`inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-3 h-10 text-[13px] font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:opacity-40 ${
                           myPrivacy?.shareSnapshots === false
                             ? 'pointer-events-none text-text-muted'
                             : 'text-text-secondary hover:text-text hover:bg-surface-hover hover:border-border-hover'
@@ -1832,7 +1832,7 @@ export default function TabPartner() {
                         <FiCamera size={14} /> Camera
                       </button>
                       <label
-                        className={`inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-3 h-9 text-[13px] font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:opacity-40 ${
+                        className={`inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-3 h-10 text-[13px] font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:opacity-40 ${
                           myPrivacy?.shareSnapshots === false || uploadingSnapshot
                             ? 'pointer-events-none text-text-muted opacity-40'
                             : 'text-text-secondary hover:text-text hover:bg-surface-hover hover:border-border-hover'
@@ -1862,13 +1862,13 @@ export default function TabPartner() {
                       <button
                         type="button"
                         onClick={openSnapshots}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-3 h-9 text-[13px] font-semibold text-text-secondary hover:text-text hover:bg-surface-hover hover:border-border-hover transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-3 h-10 text-[13px] font-semibold text-text-secondary hover:text-text hover:bg-surface-hover hover:border-border-hover transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                       >
                         <FiImage size={14} /> Gallery
                       </button>
                       {planShareOpen ? (
                         <div className="relative">
-                          <div className="absolute right-0 top-9 z-20 w-72 rounded-[16px] border border-border bg-surface shadow-xl shadow-black/5 p-2">
+                          <div className="absolute right-0 top-9 z-20 w-60 sm:w-72 rounded-[16px] border border-border bg-surface shadow-xl shadow-black/5 p-2">
                             <p className="px-2 pt-1 pb-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
                               Share a plan with {partnerName.split(' ')[0]}
                             </p>
@@ -1899,7 +1899,7 @@ export default function TabPartner() {
                         <button
                           type="button"
                           onClick={() => setPlanShareOpen(true)}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-3 h-9 text-[13px] font-semibold text-text-secondary hover:text-text hover:bg-surface-hover hover:border-border-hover transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-3 h-10 text-[13px] font-semibold text-text-secondary hover:text-text hover:bg-surface-hover hover:border-border-hover transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                         >
                           <FiLink size={14} /> Plan
                         </button>

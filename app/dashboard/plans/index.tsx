@@ -1127,7 +1127,7 @@ export default function TabPlans({
                         setHistoryDayFilter(null);
                         setHistoryLimit(HISTORY_PAGE_SIZE);
                       }}
-                      className={`flex items-center gap-1.5 rounded-lg px-3 h-9 text-[13px] font-medium transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none ${
+                      className={`flex items-center gap-1.5 rounded-lg px-3 h-10 text-[13px] font-medium transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none ${
                         active ? 'bg-surface text-text shadow-sm' : 'text-text-secondary hover:text-text'
                       }`}
                     >
