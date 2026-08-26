@@ -27,12 +27,16 @@ import {
   FiLink,
   FiCheck,
   FiImage,
-  FiUpload,
   FiX,
   FiDownload,
   FiCheckSquare,
   FiSquare,
   FiActivity,
+  FiCamera,
+  FiArrowRight,
+  FiArrowUp,
+  FiArrowDown,
+  FiMinus,
 } from 'react-icons/fi';
 import type { IconType } from 'react-icons';
 import { getRepository } from '@/lib/repositories/repository';
@@ -45,7 +49,6 @@ import { uploadSnapshot, downloadZip } from '@/lib/snapshots/snapshotApi';
 import { formatLongDate } from '@/src/utils/date';
 import type { PartnerOverview } from '@/lib/repositories/ProductivityRepository';
 import type {
-  MediaStatus,
   Message,
   PartnerPrivacySettings,
   PlanVisibility,
@@ -148,6 +151,10 @@ export default function TabPartner() {
   const [commonCategory, setCommonCategory] = useState('');
   const [commonPriority, setCommonPriority] = useState<PlanPriority>('medium');
   const [commonDate, setCommonDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [commonPhase, setCommonPhase] = useState<'start' | 'form'>('start');
+  const [commonSuccess, setCommonSuccess] = useState(false);
+  const [commonDescription, setCommonDescription] = useState('');
+  const [commonNotesOpen, setCommonNotesOpen] = useState(false);
   const [focusSession, setFocusSession] = useState<SharedFocusSession | null>(null);
   const [partnerPresence, setPartnerPresence] = useState<{ status: UserStatus; lastSeenAt: string } | null>(null);
   const [serverAnchor, setServerAnchor] = useState<{ at: number; receivedAt: number } | null>(null);
@@ -179,7 +186,6 @@ export default function TabPartner() {
   const [snapshotsLoading, setSnapshotsLoading] = useState(false);
   const [snapshotsHasMore, setSnapshotsHasMore] = useState(false);
   const [snapshotCursor, setSnapshotCursor] = useState<string | null>(null);
-  const [snapshotsBusy, setSnapshotsBusy] = useState<boolean>(false);
   const [snapshotError, setSnapshotError] = useState<string | null>(null);
   const [snapshotNotice, setSnapshotNotice] = useState<string | null>(null);
   const [snapshotSelection, setSnapshotSelection] = useState<Set<string>>(new Set());
@@ -194,6 +200,13 @@ export default function TabPartner() {
   const activityLoadedRef = useRef(false);
   const activityMoreBusyRef = useRef(false);
   const snapshotsCloseRef = useRef<HTMLButtonElement | null>(null);
+  const [webcamOpen, setWebcamOpen] = useState(false);
+  const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null);
+  const [webcamError, setWebcamError] = useState<string | null>(null);
+  const [webcamCapturing, setWebcamCapturing] = useState(false);
+  const webcamVideoRef = useRef<HTMLVideoElement | null>(null);
+  const webcamCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const webcamCloseRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -707,6 +720,88 @@ export default function TabPartner() {
     }
   };
 
+  const openWebcam = async () => {
+    setWebcamOpen(true);
+    setWebcamError(null);
+    setWebcamCapturing(false);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+        audio: false,
+      });
+      setWebcamStream(stream);
+    } catch (err) {
+      setWebcamError(err instanceof Error ? err.message : 'Could not access webcam.');
+    }
+  };
+
+  useEffect(() => {
+    if (webcamStream && webcamVideoRef.current) {
+      webcamVideoRef.current.srcObject = webcamStream;
+    }
+  }, [webcamStream]);
+
+  const closeWebcam = useCallback(() => {
+    if (webcamStream) {
+      webcamStream.getTracks().forEach((t) => t.stop());
+      setWebcamStream(null);
+    }
+    setWebcamOpen(false);
+    setWebcamError(null);
+    setWebcamCapturing(false);
+  }, [webcamStream]);
+
+  useEffect(() => {
+    if (!webcamOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    webcamCloseRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeWebcam();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKey);
+      if (webcamStream) webcamStream.getTracks().forEach((t) => t.stop());
+    };
+  }, [webcamOpen, closeWebcam]);
+
+  const captureWebcamSnapshot = async () => {
+    const video = webcamVideoRef.current;
+    const canvas = webcamCanvasRef.current;
+    if (!video || !canvas || !userId || !conversationId || webcamCapturing) return;
+    setWebcamCapturing(true);
+    setWebcamError(null);
+    try {
+      if (!video.videoWidth || !video.videoHeight) {
+        throw new Error('Webcam video not ready. Please wait a moment and try again.');
+      }
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Could not get canvas context');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (b) => (b && b.size > 0 ? resolve(b) : reject(new Error('Failed to capture image'))),
+          'image/jpeg',
+          0.92,
+        );
+      });
+      const file = new File([blob], `webcam-${Date.now()}.jpg`, { type: 'image/jpeg', lastModified: Date.now() });
+      const message = await uploadSnapshot(file, null);
+      setMessages((prev) => upsertMessage(prev, message));
+      setSnapshotNotice('Webcam snapshot shared.');
+      await loadSnapshots(undefined, true);
+      closeWebcam();
+    } catch (err) {
+      setWebcamError(err instanceof Error ? err.message : 'Failed to capture snapshot.');
+    } finally {
+      setWebcamCapturing(false);
+    }
+  };
+
   const timeLabel = (iso: string): string => {
     const d = new Date(iso);
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -737,23 +832,32 @@ export default function TabPartner() {
     try {
       await getRepository().createCommonPlan(userId, {
         title: commonTitle.trim(),
-        description: '',
+        description: commonDescription.trim(),
         type: 'weekly',
         priority: commonPriority,
         category: commonCategory.trim(),
         date: commonDate,
         status: 'not-started',
       });
-      setCommonTitle('');
-      setCommonCategory('');
-      setCommonPriority('medium');
-      setCommonDate(new Date().toISOString().split('T')[0]);
+      resetCommonForm();
+      setCommonSuccess(true);
       setCommonPlans(await getRepository().getCommonPlans(userId));
+      setTimeout(() => setCommonSuccess(false), 2200);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create common plan.');
     } finally {
       setCreating(false);
     }
+  };
+
+  const resetCommonForm = () => {
+    setCommonPhase('start');
+    setCommonTitle('');
+    setCommonCategory('');
+    setCommonPriority('medium');
+    setCommonDate(new Date().toISOString().split('T')[0]);
+    setCommonDescription('');
+    setCommonNotesOpen(false);
   };
 
   const handleCycleCommonStatus = async (plan: Plan) => {
@@ -819,7 +923,9 @@ export default function TabPartner() {
 
   const sectionClass = (active: boolean) =>
     `flex items-center gap-2 rounded-[10px] px-3.5 h-9 text-[13px] font-semibold transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-      active ? 'bg-surface-raised text-accent shadow-[var(--card-shadow)]' : 'text-text-secondary hover:text-text'
+      active
+        ? 'bg-surface-raised text-accent shadow-[var(--card-shadow)]'
+        : 'text-text-secondary hover:text-text hover:bg-surface-hover/60'
     }`;
 
   return (
@@ -849,7 +955,7 @@ export default function TabPartner() {
               <Icon size={15} />
               {s.label}
               {s.id === 'chat' && unread > 0 && (
-                <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold leading-none text-white">
+                <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold leading-none text-accent-contrast">
                   {unread > 99 ? '99+' : unread}
                 </span>
               )}
@@ -929,7 +1035,7 @@ export default function TabPartner() {
                           </div>
                         </div>
                       </div>
-                      <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-hover px-3 py-1.5 text-xs text-text-secondary">
+                      <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-raised px-3 py-1.5 text-xs font-semibold text-text-secondary">
                         <FiUsers size={13} className="text-accent" /> Connected partner
                       </div>
                     </div>
@@ -944,7 +1050,7 @@ export default function TabPartner() {
                         </p>
                       </div>
                       {stats && !stats.privacyEnabled && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-hover px-3 py-1.5 text-[11px] text-text-muted">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-raised px-3 py-1.5 text-[11px] font-semibold text-text-muted">
                           <FiLock size={11} /> Statistics private
                         </span>
                       )}
@@ -955,7 +1061,7 @@ export default function TabPartner() {
                         return (
                           <div
                             key={card.label}
-                            className="rounded-[14px] border border-border bg-surface-hover/60 px-4 py-3.5"
+                            className="rounded-[14px] border border-border bg-surface-raised px-4 py-3.5"
                           >
                             <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.06em] text-text-muted">
                               <Icon size={12} />
@@ -1034,64 +1140,331 @@ export default function TabPartner() {
                         Edits are conflict-checked so you never overwrite each other silently.
                       </p>
 
-                      <div className="mt-5 rounded-[14px] border border-border bg-surface-hover/60 p-4">
-                        <div className="text-[13px] font-semibold text-text">New common plan</div>
-                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-12 gap-2.5">
-                          <input
-                            type="text"
-                            value={commonTitle}
-                            onChange={(e) => setCommonTitle(e.target.value)}
-                            placeholder="Plan title"
-                            className="sm:col-span-4 px-3.5 py-2.5 bg-surface-hover border border-border rounded-xl text-text placeholder-text-muted text-sm focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-all"
-                          />
-                          <input
-                            type="text"
-                            value={commonCategory}
-                            onChange={(e) => setCommonCategory(e.target.value)}
-                            placeholder="Category (optional)"
-                            className="sm:col-span-3 px-3.5 py-2.5 bg-surface-hover border border-border rounded-xl text-text placeholder-text-muted text-sm focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-all"
-                          />
-                          <select
-                            value={commonPriority}
-                            onChange={(e) => setCommonPriority(e.target.value as PlanPriority)}
-                            className="sm:col-span-2 px-3.5 py-2.5 bg-surface-hover border border-border rounded-xl text-text text-sm focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-all"
+                      <div className="mt-5">
+                        {commonSuccess ? (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.2 }}
+                            role="status"
+                            aria-live="polite"
+                            className="flex items-center gap-3 rounded-[16px] border border-success/20 bg-success/5 px-5 py-4"
                           >
-                            <option value="high">High</option>
-                            <option value="medium">Medium</option>
-                            <option value="low">Low</option>
-                          </select>
-                          <input
-                            type="date"
-                            value={commonDate}
-                            onChange={(e) => setCommonDate(e.target.value)}
-                            className="sm:col-span-3 px-3.5 py-2.5 bg-surface-hover border border-border rounded-xl text-text text-sm focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-all"
-                          />
-                          <button
-                            type="button"
-                            disabled={creating || !commonTitle.trim()}
-                            onClick={() => void handleCreateCommonPlan()}
-                            className="sm:col-span-12 inline-flex items-center justify-center gap-1.5 rounded-xl bg-accent px-4 h-10 text-[13px] font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                            <span className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
+                              <FiCheckCircle className="text-success" size={20} />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-[15px] font-medium text-text">Common plan created</div>
+                              <div className="text-xs text-text-muted mt-0.5 truncate">{commonTitle || 'Untitled'}</div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                resetCommonForm();
+                                setCommonSuccess(false);
+                                setCommonPhase('start');
+                              }}
+                              className="shrink-0 text-[13px] font-medium text-accent hover:text-accent-hover transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none rounded-lg px-2 py-1"
+                            >
+                              Create another
+                            </button>
+                          </motion.div>
+                        ) : commonPhase === 'start' ? (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.2 }}
+                            className="space-y-4"
                           >
-                            <FiPlus size={15} /> Create common plan
-                          </button>
-                        </div>
+                            <div>
+                              <label
+                                htmlFor="common-plan-goal"
+                                className="text-[14px] font-medium text-text-secondary block mb-2"
+                              >
+                                What should you and your partner work on together?
+                              </label>
+                              <input
+                                id="common-plan-goal"
+                                type="text"
+                                value={commonTitle}
+                                maxLength={100}
+                                onChange={(e) => setCommonTitle(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && commonTitle.trim().length >= 3) {
+                                    setCommonPhase('form');
+                                  }
+                                }}
+                                placeholder="e.g. Study for the certification exam"
+                                className="w-full px-3.5 py-2.5 bg-surface-hover border border-border rounded-xl text-text placeholder-text-muted text-sm focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-all text-base"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setCommonPhase('form')}
+                              disabled={!commonTitle.trim() || commonTitle.trim().length < 3}
+                              className="inline-flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-accent-contrast rounded-[12px] px-4 h-10 text-[13px] font-semibold transition-colors duration-200 active:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
+                            >
+                              Continue <FiArrowRight size={14} />
+                            </button>
+                          </motion.div>
+                        ) : (
+                          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
+                            <div className="lg:grid lg:grid-cols-5 lg:gap-6">
+                              <div className="lg:col-span-3 space-y-5">
+                                <div>
+                                  <div className="flex items-center justify-between gap-3">
+                                    <span className="text-[13px] font-medium text-text-secondary">Plan title</span>
+                                    <span className="text-[11px] text-text-muted tabular-nums">
+                                      {commonTitle.length}/100
+                                    </span>
+                                  </div>
+                                  <div className="mt-1.5">
+                                    <input
+                                      type="text"
+                                      value={commonTitle}
+                                      maxLength={100}
+                                      onChange={(e) => setCommonTitle(e.target.value)}
+                                      aria-label="Common plan title"
+                                      className="w-full bg-transparent text-[22px] font-semibold tracking-[-0.02em] text-text placeholder-text-muted border-b border-border focus:border-accent focus:outline-none py-1 transition-colors"
+                                    />
+                                  </div>
+                                  {commonTitle.length > 0 && commonTitle.trim().length < 3 && (
+                                    <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-warning">
+                                      <FiAlertCircle size={11} className="shrink-0" />
+                                      Enter at least 3 characters.
+                                    </p>
+                                  )}
+                                </div>
+
+                                <div>
+                                  <span className="text-xs text-text-secondary block mb-2">Target date</span>
+                                  <input
+                                    type="date"
+                                    value={commonDate}
+                                    onChange={(e) => setCommonDate(e.target.value)}
+                                    className="w-full max-w-[220px] px-3.5 py-2.5 bg-surface-hover border border-border rounded-xl text-text placeholder-text-muted text-sm focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-all"
+                                  />
+                                </div>
+
+                                <div>
+                                  <span className="text-xs text-text-secondary block mb-2">Priority</span>
+                                  <div className="flex flex-wrap gap-2">
+                                    {[
+                                      {
+                                        id: 'low' as PlanPriority,
+                                        icon: FiArrowDown,
+                                        label: 'Low',
+                                        chip: 'bg-info/10 text-info border border-info/15',
+                                      },
+                                      {
+                                        id: 'medium' as PlanPriority,
+                                        icon: FiMinus,
+                                        label: 'Medium',
+                                        chip: 'bg-warning/10 text-warning border border-warning/15',
+                                      },
+                                      {
+                                        id: 'high' as PlanPriority,
+                                        icon: FiArrowUp,
+                                        label: 'High',
+                                        chip: 'bg-danger/10 text-danger border border-danger/15',
+                                      },
+                                    ].map((p) => {
+                                      const selected = commonPriority === p.id;
+                                      return (
+                                        <button
+                                          key={p.id}
+                                          type="button"
+                                          onClick={() => setCommonPriority(p.id)}
+                                          aria-pressed={selected}
+                                          className={`flex items-center gap-1.5 px-3.5 h-9 rounded-xl border text-[13px] font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none ${
+                                            selected
+                                              ? 'border-accent bg-accent-muted text-text shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
+                                              : 'border-border-hover text-text-secondary hover:border-border hover:text-text'
+                                          }`}
+                                        >
+                                          <p.icon
+                                            size={13}
+                                            className={
+                                              selected
+                                                ? p.chip.includes('danger')
+                                                  ? 'text-danger/70'
+                                                  : p.chip.includes('warning')
+                                                    ? 'text-warning/70'
+                                                    : 'text-info/70'
+                                                : 'text-text-muted'
+                                            }
+                                          />
+                                          {p.label}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <span className="text-xs text-text-secondary block mb-2">Category (optional)</span>
+                                  <input
+                                    type="text"
+                                    value={commonCategory}
+                                    onChange={(e) => setCommonCategory(e.target.value)}
+                                    placeholder="e.g. Study, Fitness, Project"
+                                    className="w-full max-w-[280px] px-3.5 py-2.5 bg-surface-hover border border-border rounded-xl text-text placeholder-text-muted text-sm focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-all"
+                                  />
+                                </div>
+
+                                <div>
+                                  {!commonNotesOpen ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => setCommonNotesOpen(true)}
+                                      className="flex items-center gap-1.5 text-[13px] font-medium text-accent hover:text-accent-hover transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none rounded-lg px-1 py-1"
+                                    >
+                                      <FiPlus size={14} /> Add notes
+                                    </button>
+                                  ) : (
+                                    <div>
+                                      <span className="text-xs text-text-secondary block mb-1.5">Notes (optional)</span>
+                                      <textarea
+                                        value={commonDescription}
+                                        onChange={(e) => setCommonDescription(e.target.value)}
+                                        rows={3}
+                                        placeholder="Add context or notes for this shared plan."
+                                        aria-label="Notes"
+                                        className="w-full px-3.5 py-2.5 bg-surface-hover border border-border rounded-xl text-text placeholder-text-muted text-sm focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-all resize-none"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="hidden lg:block lg:col-span-2">
+                                <div className="sticky top-4 pt-1">
+                                  <div className="space-y-3">
+                                    <div className="flex items-center gap-2 text-[11px] text-text-muted mb-1">
+                                      <FiEye size={12} /> Live preview
+                                    </div>
+                                    <div className="bg-surface-hover rounded-xl p-4 border border-border space-y-3">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-9 h-9 rounded-xl bg-accent-muted flex items-center justify-center shrink-0">
+                                          <FiUsers className="text-accent" size={16} />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                          <div className="text-sm font-medium text-text truncate">
+                                            {commonTitle || 'Untitled plan'}
+                                          </div>
+                                          <div className="text-[10px] text-text-muted">Common plan</div>
+                                        </div>
+                                      </div>
+                                      <div className="flex flex-wrap gap-2 text-[10px]">
+                                        <span className="px-2 py-0.5 rounded-full bg-surface-hover border border-border text-text-muted flex items-center gap-1">
+                                          <FiCalendar size={9} /> {commonDate}
+                                        </span>
+                                        <span
+                                          className={`px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                                            commonPriority === 'high'
+                                              ? 'bg-danger/10 text-danger border border-danger/15'
+                                              : commonPriority === 'medium'
+                                                ? 'bg-warning/10 text-warning border border-warning/15'
+                                                : 'bg-info/10 text-info border border-info/15'
+                                          }`}
+                                        >
+                                          {commonPriority === 'high' ? (
+                                            <FiArrowUp size={9} />
+                                          ) : commonPriority === 'medium' ? (
+                                            <FiMinus size={9} />
+                                          ) : (
+                                            <FiArrowDown size={9} />
+                                          )}
+                                          {commonPriority}
+                                        </span>
+                                        {commonCategory.trim() && (
+                                          <span className="px-2 py-0.5 rounded-full bg-surface-hover border border-border text-text-muted">
+                                            {commonCategory}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {commonDescription.trim() && (
+                                        <div className="pt-2 border-t border-border">
+                                          <div className="text-[11px] text-text-muted line-clamp-2">
+                                            {commonDescription}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="mt-5 pt-4 border-t border-divider">
+                              <div className="flex items-center justify-between gap-3 flex-wrap">
+                                <div className="flex items-center gap-1.5 text-xs" aria-live="polite">
+                                  {commonTitle.trim().length >= 3 ? (
+                                    <>
+                                      <FiCheckCircle size={12} className="text-success" />
+                                      <span className="text-success">Ready to create</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <FiAlertCircle size={12} className="text-text-muted" />
+                                      <span className="text-text-muted">Enter a title to continue</span>
+                                    </>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={resetCommonForm}
+                                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-text-secondary hover:text-text hover:bg-surface-hover transition-all focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => void handleCreateCommonPlan()}
+                                    disabled={creating || !commonTitle.trim() || commonTitle.trim().length < 3}
+                                    className="inline-flex items-center gap-2 rounded-[14px] bg-accent hover:bg-accent-hover active:scale-[0.98] text-accent-contrast px-5 h-[42px] text-sm font-semibold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-accent focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
+                                  >
+                                    {creating ? (
+                                      <>
+                                        <FiRefreshCw className="animate-spin" size={14} /> Creating&hellip;
+                                      </>
+                                    ) : (
+                                      <>
+                                        <FiPlus size={15} /> Create common plan
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
                       </div>
 
                       {commonPlans.length === 0 ? (
-                        <p className="mt-6 text-sm text-text-muted">
-                          No common plans yet. Create your first one above — your partner will see it immediately.
-                        </p>
+                        <div className="flex flex-col items-center gap-3 py-10 text-center">
+                          <span className="w-12 h-12 rounded-2xl bg-surface-hover flex items-center justify-center">
+                            <FiUsers size={20} className="text-text-muted" />
+                          </span>
+                          <div>
+                            <p className="text-sm font-medium text-text-secondary">No common plans yet</p>
+                            <p className="mt-1 text-xs text-text-muted">
+                              Create your first one above — your partner will see it immediately.
+                            </p>
+                          </div>
+                        </div>
                       ) : (
-                        <ul className="mt-4 divide-y divide-divider">
+                        <div className="mt-4 space-y-2">
                           {commonPlans.map((plan) => {
                             const isOwner = plan.memberRole === 'owner';
                             const pill = statusPill(plan.status);
+                            const prioIcon =
+                              plan.priority === 'high' ? FiArrowUp : plan.priority === 'medium' ? FiMinus : FiArrowDown;
+                            const PrioIcon = prioIcon;
                             return (
-                              <li
+                              <div
                                 key={plan.id}
-                                className="flex flex-wrap items-center gap-3 py-3.5 first:pt-0 last:pb-0"
+                                className="flex flex-wrap items-center gap-3 rounded-[14px] border border-border bg-surface-raised/50 px-4 py-3.5 transition-colors hover:bg-surface-hover/50"
                               >
-                                <span className="w-9 h-9 shrink-0 rounded-xl bg-surface-hover flex items-center justify-center">
+                                <span className="w-9 h-9 shrink-0 rounded-xl bg-accent-muted flex items-center justify-center">
                                   <FiUsers size={15} className="text-accent" />
                                 </span>
                                 <div className="min-w-0 flex-1 basis-52">
@@ -1112,6 +1485,11 @@ export default function TabPartner() {
                                     <span className="inline-flex items-center gap-1">
                                       <FiCalendar size={10} /> {plan.date}
                                     </span>
+                                    {plan.priority && (
+                                      <span className="inline-flex items-center gap-1">
+                                        <PrioIcon size={10} /> {plan.priority}
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                                 <span
@@ -1119,28 +1497,30 @@ export default function TabPartner() {
                                 >
                                   {pill.label}
                                 </span>
-                                <button
-                                  type="button"
-                                  disabled={planBusy !== null}
-                                  onClick={() => void handleCycleCommonStatus(plan)}
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-hover/60 hover:bg-surface-hover px-2.5 h-8 text-xs font-semibold text-text-secondary transition-colors duration-150 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                                >
-                                  <FiRefreshCw size={12} /> Advance
-                                </button>
-                                {isOwner && (
+                                <div className="flex items-center gap-1.5">
                                   <button
                                     type="button"
                                     disabled={planBusy !== null}
-                                    onClick={() => void handleDeleteCommonPlan(plan)}
-                                    className="inline-flex items-center gap-1.5 rounded-lg border border-danger/25 bg-danger/10 hover:bg-danger/15 px-2.5 h-8 text-xs font-semibold text-danger transition-colors duration-150 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                                    onClick={() => void handleCycleCommonStatus(plan)}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-raised hover:bg-surface-hover hover:border-border-hover px-2.5 h-8 text-xs font-semibold text-text-secondary hover:text-text transition-colors duration-150 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                                   >
-                                    <FiTrash2 size={12} /> Delete
+                                    <FiRefreshCw size={12} /> Advance
                                   </button>
-                                )}
-                              </li>
+                                  {isOwner && (
+                                    <button
+                                      type="button"
+                                      disabled={planBusy !== null}
+                                      onClick={() => void handleDeleteCommonPlan(plan)}
+                                      className="inline-flex items-center gap-1.5 rounded-lg border border-danger/25 bg-danger/10 hover:bg-danger/15 hover:border-danger/30 px-2.5 h-8 text-xs font-semibold text-danger transition-colors duration-150 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                                    >
+                                      <FiTrash2 size={12} /> Delete
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
                             );
                           })}
-                        </ul>
+                        </div>
                       )}
                     </motion.section>
                   ) : (
@@ -1172,8 +1552,8 @@ export default function TabPartner() {
                                   onClick={() => void handleToggleShare(plan.id, plan.visibility)}
                                   className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 h-8 text-xs font-semibold transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none disabled:opacity-50 ${
                                     shared
-                                      ? 'bg-danger/10 text-danger hover:bg-danger/15'
-                                      : 'bg-accent/10 text-accent hover:bg-accent/15'
+                                      ? 'bg-danger/10 text-danger hover:bg-danger/15 border border-danger/25 hover:border-danger/30'
+                                      : 'bg-accent/10 text-accent hover:bg-accent/15 border border-accent/20 hover:border-accent/30'
                                   }`}
                                 >
                                   {shared ? <FiEyeOff size={12} /> : <FiEye size={12} />}
@@ -1217,36 +1597,47 @@ export default function TabPartner() {
                   </div>
 
                   {!getPublicCloudEnabled() ? (
-                    <p className="mt-6 text-sm text-text-muted">
-                      Realtime shared focus requires MongoDB mode. Enable{' '}
-                      <code className="rounded bg-surface-hover px-1.5 py-0.5 text-xs">
-                        NEXT_PUBLIC_MONGODB_ENABLED
-                      </code>{' '}
-                      to use it.
-                    </p>
+                    <div className="mt-6 flex flex-col items-center gap-3 py-8 text-center">
+                      <span className="w-12 h-12 rounded-2xl bg-surface-hover flex items-center justify-center">
+                        <FiWifi size={20} className="text-text-muted" />
+                      </span>
+                      <p className="text-sm text-text-muted max-w-sm">
+                        Realtime shared focus requires MongoDB mode. Enable{' '}
+                        <code className="rounded bg-surface-hover px-1.5 py-0.5 text-xs">
+                          NEXT_PUBLIC_MONGODB_ENABLED
+                        </code>{' '}
+                        to use it.
+                      </p>
+                    </div>
                   ) : focusSession && focusSession.status !== 'ended' ? (
                     <div className="mt-6">
-                      <div className="rounded-[16px] border border-accent/20 bg-accent-muted/30 px-6 py-8 text-center">
-                        <div className="text-[11px] uppercase tracking-[0.14em] text-text-muted">
-                          {focusSession.status === 'paused' ? 'Paused' : 'Focusing together'}
+                      <div className="relative rounded-[20px] border border-accent/20 bg-gradient-to-b from-accent-muted/40 to-accent-muted/10 px-6 py-10 text-center overflow-hidden">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,var(--accent-muted),transparent_70%)] opacity-40" />
+                        <div className="relative">
+                          <div className="text-[11px] uppercase tracking-[0.14em] font-semibold text-text-muted">
+                            {focusSession.status === 'paused' ? 'Paused' : 'Focusing together'}
+                          </div>
+                          <div className="mt-3 text-[56px] sm:text-[68px] font-bold tracking-tight text-text tabular-nums leading-none">
+                            {formatRemaining(focusSession.status === 'running' ? remainingMs : pausedRemainingMs())}
+                          </div>
+                          <div className="mt-3 flex items-center justify-center gap-2 text-xs text-text-muted">
+                            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                            {focusSession.durationMinutes} min session · with {overview.profile.displayName}
+                          </div>
+                          {focusSession.status === 'paused' && (
+                            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-warning/20 bg-warning/10 px-3 py-1 text-xs font-medium text-warning">
+                              <FiPause size={12} /> Timer paused — resume to keep going
+                            </div>
+                          )}
                         </div>
-                        <div className="mt-2 text-[52px] sm:text-[64px] font-semibold tracking-tight text-text tabular-nums">
-                          {formatRemaining(focusSession.status === 'running' ? remainingMs : pausedRemainingMs())}
-                        </div>
-                        <div className="mt-2 text-xs text-text-muted">
-                          {focusSession.durationMinutes} min session · started with {overview.profile.displayName}
-                        </div>
-                        {focusSession.status === 'paused' && (
-                          <div className="mt-2 text-xs text-warning">Timer paused — resume to keep going.</div>
-                        )}
                       </div>
-                      <div className="mt-4 flex flex-wrap justify-center gap-2.5">
+                      <div className="mt-5 flex flex-wrap justify-center gap-2.5">
                         {focusSession.status === 'running' ? (
                           <button
                             type="button"
                             disabled={focusBusy}
                             onClick={() => void runFocusAction('pause')}
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-hover/60 hover:bg-surface-hover px-4 h-10 text-[13px] font-semibold text-text transition-colors duration-150 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-4 h-10 text-[13px] font-semibold text-text-secondary hover:text-text hover:bg-surface-hover transition-colors duration-150 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                           >
                             <FiPause size={15} /> Pause
                           </button>
@@ -1255,7 +1646,7 @@ export default function TabPartner() {
                             type="button"
                             disabled={focusBusy}
                             onClick={() => void runFocusAction('resume')}
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 h-10 text-[13px] font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-5 h-10 text-[13px] font-semibold text-accent-contrast hover:opacity-90 transition-opacity disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                           >
                             <FiPlay size={15} /> Resume
                           </button>
@@ -1280,35 +1671,40 @@ export default function TabPartner() {
                     </div>
                   ) : (
                     <div className="mt-6">
-                      <div className="flex flex-wrap items-center gap-2">
-                        {[15, 25, 45, 60].map((minutes) => (
-                          <button
-                            key={minutes}
-                            type="button"
-                            onClick={() => setFocusDuration(minutes)}
-                            aria-pressed={focusDuration === minutes}
-                            className={`inline-flex items-center rounded-xl border px-3.5 h-9 text-[13px] font-medium transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-                              focusDuration === minutes
-                                ? 'border-accent/30 bg-accent-muted text-accent'
-                                : 'border-border bg-surface-hover/60 text-text-secondary hover:text-text'
-                            }`}
-                          >
-                            {minutes} min
-                          </button>
-                        ))}
+                      <div className="rounded-[16px] border border-border bg-surface-hover p-5">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-3">Duration</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {[15, 25, 45, 60].map((minutes) => (
+                            <button
+                              key={minutes}
+                              type="button"
+                              onClick={() => setFocusDuration(minutes)}
+                              aria-pressed={focusDuration === minutes}
+                              className={`inline-flex items-center rounded-xl border px-4 h-10 text-[13px] font-semibold transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                                focusDuration === minutes
+                                  ? 'border-accent/40 bg-accent-muted text-accent shadow-sm'
+                                  : 'border-border bg-surface text-text hover:text-text hover:border-border-hover hover:bg-surface-hover'
+                              }`}
+                            >
+                              {minutes} min
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="mt-4 flex items-center gap-3">
                         <button
                           type="button"
                           disabled={focusBusy}
                           onClick={() => void runFocusAction('start')}
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 h-10 text-[13px] font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                          className="inline-flex items-center gap-2 rounded-xl bg-accent px-6 h-11 text-[14px] font-semibold text-accent-contrast hover:opacity-90 transition-opacity disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
                         >
-                          <FiPlay size={15} /> Start together
+                          <FiPlay size={16} /> Start together
                         </button>
+                        <p className="text-xs text-text-muted">
+                          Starting a session sets both of you to &ldquo;focusing&rdquo; and records completed focus
+                          minutes for each partner when you finish.
+                        </p>
                       </div>
-                      <p className="mt-4 text-xs text-text-muted">
-                        Starting a session sets both of you to &ldquo;focusing&rdquo; and records completed focus
-                        minutes for each partner when you finish.
-                      </p>
                     </div>
                   )}
                 </motion.section>
@@ -1327,7 +1723,7 @@ export default function TabPartner() {
                       type="button"
                       onClick={() => void loadActivity()}
                       disabled={activityLoading}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-hover/60 px-3 h-9 text-[13px] font-semibold text-text-secondary transition-colors duration-150 hover:bg-surface-hover hover:text-text disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-3 h-9 text-[13px] font-semibold text-text-secondary hover:text-text hover:bg-surface-hover hover:border-border-hover transition-colors duration-150 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                     >
                       <FiRefreshCw size={13} className={activityLoading ? 'animate-spin' : ''} />
                       Refresh
@@ -1418,20 +1814,37 @@ export default function TabPartner() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <label
-                        className={`inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-border bg-surface-hover/60 px-3 h-9 text-[13px] font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:opacity-50 ${
-                          myPrivacy?.shareSnapshots === false || uploadingSnapshot
-                            ? 'pointer-events-none opacity-40'
-                            : 'hover:text-text'
+                      <button
+                        type="button"
+                        onClick={() => void openWebcam()}
+                        disabled={myPrivacy?.shareSnapshots === false}
+                        className={`inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-3 h-9 text-[13px] font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:opacity-40 ${
+                          myPrivacy?.shareSnapshots === false
+                            ? 'pointer-events-none text-text-muted'
+                            : 'text-text-secondary hover:text-text hover:bg-surface-hover hover:border-border-hover'
                         }`}
                         title={
                           myPrivacy?.shareSnapshots === false
                             ? 'Snapshot sharing is disabled in Partner privacy.'
-                            : 'Share a snapshot'
+                            : 'Take a webcam snapshot'
+                        }
+                      >
+                        <FiCamera size={14} /> Camera
+                      </button>
+                      <label
+                        className={`inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-3 h-9 text-[13px] font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring disabled:opacity-40 ${
+                          myPrivacy?.shareSnapshots === false || uploadingSnapshot
+                            ? 'pointer-events-none text-text-muted opacity-40'
+                            : 'text-text-secondary hover:text-text hover:bg-surface-hover hover:border-border-hover'
+                        }`}
+                        title={
+                          myPrivacy?.shareSnapshots === false
+                            ? 'Snapshot sharing is disabled in Partner privacy.'
+                            : 'Upload a snapshot'
                         }
                       >
                         {uploadingSnapshot ? <FiRefreshCw size={14} className="animate-spin" /> : <FiImage size={14} />}
-                        Upload snapshot
+                        Upload
                         <input
                           type="file"
                           accept="image/*"
@@ -1449,9 +1862,9 @@ export default function TabPartner() {
                       <button
                         type="button"
                         onClick={openSnapshots}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-hover/60 px-3 h-9 text-[13px] font-medium text-text-secondary hover:text-text transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-3 h-9 text-[13px] font-semibold text-text-secondary hover:text-text hover:bg-surface-hover hover:border-border-hover transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                       >
-                        <FiImage size={14} /> Snapshots
+                        <FiImage size={14} /> Gallery
                       </button>
                       {planShareOpen ? (
                         <div className="relative">
@@ -1486,9 +1899,9 @@ export default function TabPartner() {
                         <button
                           type="button"
                           onClick={() => setPlanShareOpen(true)}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-hover/60 px-3 h-9 text-[13px] font-medium text-text-secondary hover:text-text transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-3 h-9 text-[13px] font-semibold text-text-secondary hover:text-text hover:bg-surface-hover hover:border-border-hover transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                         >
-                          <FiLink size={14} /> Share a plan
+                          <FiLink size={14} /> Plan
                         </button>
                       )}
                     </div>
@@ -1557,7 +1970,7 @@ export default function TabPartner() {
                             <div
                               className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 ${
                                 mine
-                                  ? 'rounded-br-md bg-accent text-white'
+                                  ? 'rounded-br-md bg-accent text-accent-contrast'
                                   : 'rounded-bl-md border border-border bg-surface-hover/50 text-text'
                               }`}
                             >
@@ -1584,7 +1997,7 @@ export default function TabPartner() {
                                 <div>
                                   <p
                                     className={`text-[11px] font-semibold uppercase tracking-wider ${
-                                      mine ? 'text-white/70' : 'text-text-muted'
+                                      mine ? 'text-accent-contrast/70' : 'text-text-muted'
                                     }`}
                                   >
                                     Shared a plan
@@ -1596,7 +2009,7 @@ export default function TabPartner() {
                               )}
                               <div
                                 className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${
-                                  mine ? 'text-white/60' : 'text-text-faint'
+                                  mine ? 'text-accent-contrast/60' : 'text-text-faint'
                                 }`}
                               >
                                 <span>{timeLabel(m.createdAt)}</span>
@@ -1647,12 +2060,105 @@ export default function TabPartner() {
                       type="button"
                       disabled={sending || !chatInput.trim()}
                       onClick={() => void handleSendMessage()}
-                      className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-accent px-4 text-[13px] font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                      className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-accent px-4 text-[13px] font-semibold text-accent-contrast hover:opacity-90 transition-opacity disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring shadow-[0_1px_4px_rgba(0,0,0,0.12)]"
                     >
                       <FiSend size={15} /> Send
                     </button>
                   </div>
                 </motion.section>
+              )}
+
+              {webcamOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                  <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeWebcam} aria-hidden />
+                  <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="webcam-dialog-title"
+                    className="relative z-10 w-full max-w-lg flex flex-col rounded-[22px] border border-border bg-surface shadow-2xl shadow-black/20 overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between gap-3 border-b border-divider px-6 py-4">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-9 h-9 rounded-xl bg-accent-muted flex items-center justify-center">
+                          <FiCamera size={16} className="text-accent" />
+                        </span>
+                        <div>
+                          <h2
+                            id="webcam-dialog-title"
+                            className="text-[16px] font-semibold tracking-[-0.01em] text-text"
+                          >
+                            Webcam snapshot
+                          </h2>
+                          <p className="text-xs text-text-muted">Capture a moment to share in chat.</p>
+                        </div>
+                      </div>
+                      <button
+                        ref={webcamCloseRef}
+                        type="button"
+                        onClick={closeWebcam}
+                        aria-label="Close webcam"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-surface-raised text-text-secondary hover:text-text hover:bg-surface-hover transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                      >
+                        <FiX size={16} />
+                      </button>
+                    </div>
+
+                    {webcamError && (
+                      <div
+                        className="border-b border-danger/25 bg-danger/10 px-6 py-2.5 text-xs text-danger"
+                        role="alert"
+                      >
+                        {webcamError}
+                      </div>
+                    )}
+
+                    <div className="relative bg-black aspect-video">
+                      {webcamStream ? (
+                        <video
+                          ref={webcamVideoRef}
+                          autoPlay
+                          playsInline
+                          muted
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          <div className="text-center">
+                            <span className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent inline-block" />
+                            <p className="mt-3 text-[13px] text-text-muted">Accessing webcam…</p>
+                          </div>
+                        </div>
+                      )}
+                      <canvas ref={webcamCanvasRef} className="hidden" />
+                    </div>
+
+                    <div className="flex items-center justify-center gap-3 border-t border-divider px-6 py-4">
+                      <button
+                        type="button"
+                        onClick={closeWebcam}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-4 h-10 text-[13px] font-semibold text-text-secondary hover:text-text hover:bg-surface-hover transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!webcamStream || webcamCapturing}
+                        onClick={() => void captureWebcamSnapshot()}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-5 h-10 text-[13px] font-semibold text-accent-contrast hover:opacity-90 transition-opacity disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                      >
+                        {webcamCapturing ? (
+                          <>
+                            <FiRefreshCw size={15} className="animate-spin" /> Sharing…
+                          </>
+                        ) : (
+                          <>
+                            <FiCamera size={15} /> Capture & share
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {snapshotsOpen && (
@@ -1798,7 +2304,7 @@ export default function TabPartner() {
                           type="button"
                           disabled={snapshotSelection.size === 0 || exportingSnapshots}
                           onClick={() => void handleExportSnapshots()}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-accent/30 bg-accent-muted/20 px-3.5 h-9 text-[13px] font-semibold text-accent transition-colors hover:bg-accent-muted/40 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-accent/30 bg-accent-muted/20 px-3.5 h-9 text-[13px] font-semibold text-accent transition-colors hover:bg-accent-muted/40 hover:border-accent/40 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                         >
                           <FiDownload size={14} />
                           {exportingSnapshots ? 'Exporting…' : 'Export ZIP'}
@@ -1807,7 +2313,7 @@ export default function TabPartner() {
                           type="button"
                           disabled={snapshotSelection.size === 0 || removingSnapshots}
                           onClick={() => void handleRemoveSnapshots()}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-danger/25 bg-danger/10 px-3.5 h-9 text-[13px] font-semibold text-danger transition-colors hover:bg-danger/15 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-danger/25 bg-danger/10 px-3.5 h-9 text-[13px] font-semibold text-danger transition-colors hover:bg-danger/15 hover:border-danger/30 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                         >
                           <FiTrash2 size={14} />
                           {removingSnapshots ? 'Removing…' : 'Remove after export'}
