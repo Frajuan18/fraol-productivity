@@ -1000,7 +1000,26 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
       $or: [{ userAId: userId }, { userBId: userId }],
     });
     if (partnerships.length === 0) return null;
-    return partnerships.find((p) => p.relationshipType === 'fixed_partner') ?? partnerships[0];
+
+    const users = this.db.collection<UserDoc>(COLLECTIONS.USERS);
+    const candidates = partnerships.filter((p) => p.relationshipType === 'fixed_partner') ?? partnerships;
+
+    for (const p of candidates) {
+      const partnerId = p.userAId === userId ? p.userBId : p.userAId;
+      const partnerExists = await users.findOne({ _id: partnerId });
+      if (partnerExists) return p;
+    }
+
+    // Clean up orphaned partnerships where the partner user no longer exists.
+    for (const p of partnerships) {
+      const partnerId = p.userAId === userId ? p.userBId : p.userAId;
+      const partnerExists = await users.findOne({ _id: partnerId });
+      if (!partnerExists) {
+        await this.db.collection<PartnershipDoc>(COLLECTIONS.PARTNERSHIPS).deleteOne({ _id: p._id });
+      }
+    }
+
+    return null;
   }
 
   // ---- Conversation / Chat ------------------------------------------------
