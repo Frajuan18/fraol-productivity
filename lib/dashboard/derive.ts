@@ -258,3 +258,33 @@ export function buildInsights(
   }
   return insights.slice(0, 3);
 }
+
+export interface FocusDistributionSlice {
+  task: string;
+  minutes: number;
+  percentage: number;
+}
+
+export function buildFocusDistribution(sessions: Session[]): FocusDistributionSlice[] {
+  const taskMinutes = new Map<string, number>();
+  for (const s of sessions) {
+    if (s.status === 'In Progress') continue;
+    const mins = parseDurationMinutes(s.duration);
+    if (mins <= 0) continue;
+    const task = s.task || 'Uncategorized';
+    taskMinutes.set(task, (taskMinutes.get(task) ?? 0) + mins);
+  }
+  const total = Array.from(taskMinutes.values()).reduce((a, b) => a + b, 0);
+  if (total === 0) return [];
+  return Array.from(taskMinutes.entries())
+    .map(([task, minutes]) => ({ task, minutes, percentage: Math.round((minutes / total) * 100) }))
+    .sort((a, b) => b.minutes - a.minutes);
+}
+
+function parseDurationMinutes(dur: string): number {
+  const hMatch = dur.match(/(\d+)\s*h/i);
+  const mMatch = dur.match(/(\d+)\s*m/i);
+  const h = hMatch ? parseInt(hMatch[1], 10) : 0;
+  const m = mMatch ? parseInt(mMatch[1], 10) : 0;
+  return h * 60 + m;
+}

@@ -11,14 +11,15 @@ export const WIDGET_SIZES = ['small', 'medium', 'large'] as const;
 export type WidgetSize = (typeof WIDGET_SIZES)[number];
 
 export const DASHBOARD_WIDGET_IDS = [
+  'weekly-progress',
+  'buddy-summary',
   'today-focus',
   'current-session',
-  'weekly-progress',
-  'productivity-insights',
   'upcoming-plans',
   'recent-activity',
-  'buddy-summary',
+  'focus-distribution',
   'focus-heatmap',
+  'productivity-insights',
   'long-term-goals',
   'quick-actions',
 ] as const;
@@ -48,32 +49,32 @@ export interface WidgetMeta {
 }
 
 export const WIDGET_META: Record<DashboardWidgetId, WidgetMeta> = {
+  'weekly-progress': {
+    id: 'weekly-progress',
+    title: 'Weekly Progress',
+    description: 'Focus time this week compared with last week.',
+    defaultSize: 'medium',
+    resizable: false,
+  },
+  'buddy-summary': {
+    id: 'buddy-summary',
+    title: 'Partner',
+    description: "Your partner's focus summary, privacy-filtered.",
+    defaultSize: 'medium',
+    resizable: false,
+  },
   'today-focus': {
     id: 'today-focus',
     title: "Today's Focus",
     description: 'Focus minutes, sessions and streak for today.',
-    defaultSize: 'large',
-    resizable: true,
+    defaultSize: 'medium',
+    resizable: false,
   },
   'current-session': {
     id: 'current-session',
     title: 'Current Session',
     description: 'Live status of your running focus session.',
     defaultSize: 'medium',
-    resizable: false,
-  },
-  'weekly-progress': {
-    id: 'weekly-progress',
-    title: 'Weekly Progress',
-    description: 'Focus time this week compared with last week.',
-    defaultSize: 'medium',
-    resizable: true,
-  },
-  'productivity-insights': {
-    id: 'productivity-insights',
-    title: 'Productivity Insights',
-    description: 'Quick observations drawn from your history.',
-    defaultSize: 'small',
     resizable: false,
   },
   'upcoming-plans': {
@@ -87,22 +88,29 @@ export const WIDGET_META: Record<DashboardWidgetId, WidgetMeta> = {
     id: 'recent-activity',
     title: 'Recent Activity',
     description: 'Your latest focus sessions.',
-    defaultSize: 'small',
+    defaultSize: 'medium',
     resizable: false,
   },
-  'buddy-summary': {
-    id: 'buddy-summary',
-    title: 'Shared Buddy',
-    description: "Your partner's focus summary, privacy-filtered.",
-    defaultSize: 'small',
+  'focus-distribution': {
+    id: 'focus-distribution',
+    title: 'Focus Distribution',
+    description: 'How your focus time is split across tasks.',
+    defaultSize: 'medium',
     resizable: false,
   },
   'focus-heatmap': {
     id: 'focus-heatmap',
     title: 'Focus Heatmap',
     description: 'Your last 30 days of focus at a glance.',
-    defaultSize: 'large',
-    resizable: true,
+    defaultSize: 'medium',
+    resizable: false,
+  },
+  'productivity-insights': {
+    id: 'productivity-insights',
+    title: 'Insights',
+    description: 'Quick observations drawn from your history.',
+    defaultSize: 'medium',
+    resizable: false,
   },
   'long-term-goals': {
     id: 'long-term-goals',
@@ -115,7 +123,7 @@ export const WIDGET_META: Record<DashboardWidgetId, WidgetMeta> = {
     id: 'quick-actions',
     title: 'Quick Actions',
     description: 'One-tap shortcuts for common tasks.',
-    defaultSize: 'small',
+    defaultSize: 'medium',
     resizable: false,
   },
 };

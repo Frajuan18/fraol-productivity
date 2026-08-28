@@ -56,33 +56,23 @@ export function normalizeLayout(input: unknown): DashboardLayout {
   const base = createDefaultLayout();
   if (!isDashboardLayout(input)) return base;
 
-  const seen = new Set<DashboardWidgetId>();
-  const normalized: DashboardWidgetConfig[] = [];
+  const savedById = new Map<DashboardWidgetId, Partial<DashboardWidgetConfig>>();
   for (const raw of input.widgets) {
     if (!raw || typeof raw !== 'object') continue;
     const id = (raw as { id?: unknown }).id;
-    if (!isWidgetId(id) || seen.has(id)) continue;
-    seen.add(id);
-    const item = raw as Partial<DashboardWidgetConfig>;
-    normalized.push({
-      id,
-      size: validSizeFor(id, item.size),
-      visible: typeof item.visible === 'boolean' ? item.visible : true,
-      collapsed: typeof item.collapsed === 'boolean' ? item.collapsed : false,
-    });
+    if (!isWidgetId(id)) continue;
+    savedById.set(id, raw as Partial<DashboardWidgetConfig>);
   }
 
-  for (const id of DASHBOARD_WIDGET_IDS) {
-    if (!seen.has(id)) {
-      seen.add(id);
-      normalized.push({
-        id,
-        size: WIDGET_META[id].defaultSize,
-        visible: true,
-        collapsed: false,
-      });
-    }
-  }
+  const normalized: DashboardWidgetConfig[] = DASHBOARD_WIDGET_IDS.map((id) => {
+    const saved = savedById.get(id);
+    return {
+      id,
+      size: validSizeFor(id, saved?.size),
+      visible: typeof saved?.visible === 'boolean' ? saved.visible : true,
+      collapsed: typeof saved?.collapsed === 'boolean' ? saved.collapsed : false,
+    };
+  });
 
   return { version: DASHBOARD_LAYOUT_VERSION, widgets: normalized };
 }

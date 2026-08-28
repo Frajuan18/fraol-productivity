@@ -7,6 +7,7 @@ import { formatShortDate, toIsoDateString } from '@/src/utils/date';
 import { formatMinutesAsHoursMinutes, sumSessionMinutes } from '@/src/utils/time';
 import {
   activeSessionOf,
+  buildFocusDistribution,
   buildHeatmap,
   buildInsights,
   buildWeekDays,
@@ -21,6 +22,7 @@ import {
   startOfWeekIso,
   todayMinutesFor,
   weeklyComparison,
+  type FocusDistributionSlice,
   type HeatmapCell,
   type InsightSlice,
   type WeekDaySlice,
@@ -62,6 +64,7 @@ export interface DashboardBundle {
   longTermGoals: Plan[];
   heatmap: HeatmapCell[];
   insights: InsightSlice[];
+  focusDistribution: FocusDistributionSlice[];
   analytics: AnalyticsResult | null;
 }
 
@@ -144,6 +147,7 @@ export function useDashboardData({ sessions, plans, user, analytics }: UseDashbo
       weeklyChangeDisplay: week.changeDisplay,
       streak: stats.streak,
     });
+    const focusDistribution = buildFocusDistribution(sessions);
 
     const userName = user && user.trim() ? user.trim() : 'friend';
 
@@ -180,6 +184,7 @@ export function useDashboardData({ sessions, plans, user, analytics }: UseDashbo
       longTermGoals: goals,
       heatmap,
       insights,
+      focusDistribution,
       analytics,
     };
   }, [sessions, plans, user, signals, signalsLoading, signalsError, refresh, stats, analytics]);
