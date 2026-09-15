@@ -33,7 +33,11 @@ export async function POST(request: Request) {
   }
 
   const userId = await getRequestUserId(request);
-  if (!userId) return fail('Authentication required.', 'UNAUTHORIZED', 401);
+  if (!userId) {
+    console.error('[API] Authentication failed — no userId from session cookie');
+    return fail('Authentication required.', 'UNAUTHORIZED', 401);
+  }
+  console.log(`[API] userId="${userId}" action="${body.action}"`);
 
   const repository = createMongoDbRepository();
   if (!repository) return fail('MongoDB is not configured.', 'NOT_CONFIGURED', 503);
@@ -52,7 +56,7 @@ async function dispatch(
       case 'currentUser.get':
         return ok({ id: userId, email: '', displayName: '' });
       case 'appData.load':
-        return ok(await repo.loadAppData());
+        return ok(await repo.loadAppData(userId));
       case 'plans.my':
         return ok(await repo.getMyPlans(userId));
       case 'plans.common':
@@ -92,6 +96,16 @@ async function dispatch(
         );
       case 'sessions.create':
         return ok(await repo.createSession(userId, payload.input as never));
+      case 'sessions.update':
+        return ok(await repo.updateSession(userId, String(payload.sessionId), payload.updates as never));
+      case 'sessions.delete':
+        return ok(await repo.deleteSession(userId, String(payload.sessionId)));
+      case 'taskTypes.get':
+        return ok(await repo.getTaskTypes(userId));
+      case 'taskTypes.add':
+        return ok(await repo.addTaskType(userId, String(payload.taskType)));
+      case 'taskTypes.remove':
+        return ok(await repo.removeTaskType(userId, String(payload.taskType)));
       case 'presence.set':
         await repo.setUserStatus(userId, payload.status as never);
         return ok(true);

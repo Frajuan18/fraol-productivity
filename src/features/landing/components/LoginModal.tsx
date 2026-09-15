@@ -25,6 +25,11 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // MongoDB mode authenticates against real accounts, which are keyed by email, so the
+  // identifier must be an email there. Only local mode accepts the demo username.
+  // Registration is always email-based.
+  const usesEmail = mode === 'register' || auth.mode === 'mongodb';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -119,16 +124,16 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-[#777D87]" htmlFor="auth-identifier">
-                  {mode === 'register' ? 'Email' : 'Username or email'}
+                  {usesEmail ? 'Email' : 'Username'}
                 </label>
                 <div className="relative">
                   <FiMail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#777D87]" size={15} />
                   <input
                     id="auth-identifier"
-                    type={mode === 'register' ? 'email' : 'text'}
+                    type={usesEmail ? 'email' : 'text'}
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder={mode === 'register' ? 'you@example.com' : 'Enter your username or email'}
+                    placeholder={usesEmail ? 'you@example.com' : 'Enter your username'}
                     required
                     className={inputClass}
                   />

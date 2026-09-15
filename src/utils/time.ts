@@ -40,6 +40,10 @@ export function formatMinutesAsHoursMinutes(totalMinutes: number): string {
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }
 
+export function formatMinutes(totalMinutes: number): string {
+  return `${Math.max(0, Math.round(totalMinutes))}m`;
+}
+
 export function formatSecondsAsDuration(totalSeconds: number): string {
   const hrs = Math.floor(totalSeconds / SECONDS_PER_HOUR);
   const mins = Math.floor((totalSeconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);

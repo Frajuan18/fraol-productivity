@@ -23,7 +23,7 @@ export function LandingBibleVerse() {
         <FiBookOpen size={13} className="text-[#777D88]" aria-hidden="true" />
         <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#777D88]">Verse of the Day</span>
       </div>
-      {isLoading ? (
+      {isLoading && !verse ? (
         <div className="flex items-center justify-center py-3">
           <LoadingSpinner label="Loading verse..." />
         </div>

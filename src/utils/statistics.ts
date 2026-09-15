@@ -1,5 +1,5 @@
 import { SESSION_STATUS, PLAN_STATUS, type Session, type Plan } from '@/src/types';
-import { formatShortDate, getPreviousWeekStart, getWeekStart, isSameDay } from '@/src/utils/date';
+import { formatShortDate, getPreviousWeekStart, getWeekStart, isSameDay, parseSessionDate } from '@/src/utils/date';
 import { parseDuration, sumSessionMinutes } from '@/src/utils/time';
 
 export function countSessionsByStatus(sessions: ReadonlyArray<Session>, status: Session['status']): number {
@@ -32,8 +32,8 @@ export function focusMinutesThisWeek(sessions: ReadonlyArray<Session>): number {
   const today = new Date();
   return sessions
     .filter((s) => {
-      const sessionDate = new Date(s.date);
-      return sessionDate >= weekStart && sessionDate <= today;
+      const sessionDate = parseSessionDate(s.date);
+      return sessionDate && sessionDate >= weekStart && sessionDate <= today;
     })
     .reduce((total, session) => total + parseDuration(session.duration).totalMinutes, 0);
 }
@@ -45,8 +45,8 @@ export function focusMinutesLastWeek(sessions: ReadonlyArray<Session>): number {
 
   return sessions
     .filter((s) => {
-      const sessionDate = new Date(s.date);
-      return sessionDate >= lastWeekStart && sessionDate <= lastWeekEnd;
+      const sessionDate = parseSessionDate(s.date);
+      return sessionDate && sessionDate >= lastWeekStart && sessionDate <= lastWeekEnd;
     })
     .reduce((total, session) => total + parseDuration(session.duration).totalMinutes, 0);
 }
@@ -113,7 +113,11 @@ export function groupSessionsByDate(sessions: ReadonlyArray<Session>): Record<st
 }
 
 export function sortedSessionDates(sessions: ReadonlyArray<Session>): string[] {
-  return Object.keys(groupSessionsByDate(sessions)).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  return Object.keys(groupSessionsByDate(sessions)).sort((a, b) => {
+    const da = parseSessionDate(b)?.getTime() ?? 0;
+    const db = parseSessionDate(a)?.getTime() ?? 0;
+    return da - db;
+  });
 }
 
 export function hasSessionOnDate(sessions: ReadonlyArray<Session>, day: Date): boolean {

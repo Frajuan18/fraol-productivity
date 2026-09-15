@@ -73,6 +73,8 @@ export type SessionStatus = (typeof SESSION_STATUS)[keyof typeof SESSION_STATUS]
 export interface Session {
   id: number;
   task: string;
+  /** Focus subject chosen for the session (e.g. Mathematics, Reading). */
+  subject?: string;
   duration: string;
   date: string;
   status: SessionStatus;
@@ -93,11 +95,21 @@ export interface Stats {
   dailyStreak: number;
 }
 
+/** A focus goal the user sets for a specific calendar day (minutes of focus). */
+export interface DailyGoal {
+  /** ISO date (YYYY-MM-DD) the goal applies to. */
+  date: string;
+  /** Target focus minutes for that day. */
+  targetMinutes: number;
+}
+
 export interface UserProfile {
   name: string;
   streak: number;
   totalFocusHours: number;
   taskTypes: string[];
+  /** The user's daily focus goal — keyed by the day it was set for. */
+  dailyGoal?: DailyGoal;
 }
 
 export interface AppData {

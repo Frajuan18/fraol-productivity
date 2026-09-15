@@ -9,6 +9,7 @@ import type { Document } from 'mongodb';
 import { COLLECTIONS } from '@/lib/mongodb/collections';
 import type {
   ConversationDoc,
+  DailyGoalDoc,
   FocusSessionDoc,
   ImageMetadataDoc,
   MessageDoc,
@@ -74,6 +75,7 @@ import {
 } from '@/src/types';
 import type {
   AuthUser,
+  PartnerGoalProgress,
   PartnerOverview,
   PartnerStatistics,
   PartnerView,
@@ -232,20 +234,25 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
   // ---- Core app data (legacy compatibility) --------------------------------
 
   async loadAppData(userId = ''): Promise<AppData> {
-    if (!userId)
+    if (!userId) {
+      console.error('[loadAppData] No userId provided — returning empty data');
       return {
         plans: [],
         sessions: [],
         stats: EMPTY_STATS,
         user: { name: '', streak: 0, totalFocusHours: 0, taskTypes: [] },
       };
+    }
+    console.log(`[loadAppData] userId="${userId}"`);
     const plans = [...(await this.getMyPlans(userId)), ...(await this.getCommonPlans(userId))];
     const sessions = (await this.listSessions(userId, undefined, SESSION_PAGE_SIZE)).items;
+    console.log(`[loadAppData] plans=${plans.length} sessions=${sessions.length}`);
     const stats = await this.getStatistics(userId);
     const user = await this.db
       .collection<UserDoc>(COLLECTIONS.USERS)
       .findOne({ _id: userId })
       .then((u) => u ?? null);
+    const taskTypes = await this.getTaskTypes(userId);
     return {
       plans,
       sessions,
@@ -254,7 +261,7 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
         name: user?.displayName ?? 'User',
         streak: stats.weeklyStreak,
         totalFocusHours: stats.totalFocusHours,
-        taskTypes: [],
+        taskTypes,
       },
     };
   }
@@ -683,7 +690,7 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
   async createSession(userId: string, input: SessionInput): Promise<Session> {
     const now = nowIso();
     const doc: FocusSessionDoc = {
-      _id: crypto.randomUUID(),
+      _id: String(Date.now()),
       userId,
       task: input.task,
       duration: input.duration,
@@ -713,6 +720,58 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
       },
       { upsert: true },
     );
+  }
+
+  async updateSession(userId: string, sessionId: string, updates: Partial<Session>): Promise<Session | null> {
+    const col = this.db.collection<FocusSessionDoc>(COLLECTIONS.FOCUS_SESSIONS);
+    const existing = await col.findOne({ _id: sessionId, userId });
+    if (!existing) return null;
+    const patch: Partial<FocusSessionDoc> = {};
+    if (updates.task !== undefined) patch.task = updates.task;
+    if (updates.duration !== undefined) {
+      patch.duration = updates.duration;
+      patch.durationMinutes = parseDuration(updates.duration).totalMinutes;
+    }
+    if (updates.date !== undefined) patch.date = updates.date;
+    if (updates.status !== undefined) patch.status = updates.status;
+    if (updates.startTime !== undefined) patch.startTime = updates.startTime;
+    if (updates.endTime !== undefined) patch.endTime = updates.endTime;
+    if (updates.actualDuration !== undefined) patch.actualDuration = updates.actualDuration;
+    await col.updateOne({ _id: sessionId, userId }, { $set: patch });
+    const doc = await col.findOne({ _id: sessionId, userId });
+    return doc ? focusDocToSession(doc) : null;
+  }
+
+  async deleteSession(userId: string, sessionId: string): Promise<boolean> {
+    const result = await this.db
+      .collection<FocusSessionDoc>(COLLECTIONS.FOCUS_SESSIONS)
+      .deleteOne({ _id: sessionId, userId });
+    return result;
+  }
+
+  // ---- Task types ----------------------------------------------------------
+
+  async getTaskTypes(userId: string): Promise<string[]> {
+    const doc = await this.db
+      .collection<{ _id: string; types: string[] }>(COLLECTIONS.TASK_TYPES)
+      .findOne({ _id: userId });
+    return doc?.types ?? [];
+  }
+
+  async addTaskType(userId: string, taskType: string): Promise<string[]> {
+    const trimmed = taskType.trim();
+    if (!trimmed) return this.getTaskTypes(userId);
+    await this.db
+      .collection<{ _id: string; types: string[] }>(COLLECTIONS.TASK_TYPES)
+      .updateOne({ _id: userId }, { $addToSet: { types: trimmed }, $set: { updatedAt: nowIso() } }, { upsert: true });
+    return this.getTaskTypes(userId);
+  }
+
+  async removeTaskType(userId: string, taskType: string): Promise<string[]> {
+    await this.db
+      .collection<{ _id: string; types: string[] }>(COLLECTIONS.TASK_TYPES)
+      .updateOne({ _id: userId }, { $pull: { types: taskType }, $set: { updatedAt: nowIso() } });
+    return this.getTaskTypes(userId);
   }
 
   // ---- Statistics ---------------------------------------------------------
@@ -919,6 +978,61 @@ export class MongoDbProductivityRepository implements ProductivityRepository {
   async getProfile(userId: string): Promise<Profile | null> {
     const doc = await this.db.collection<ProfileDoc>(COLLECTIONS.PROFILES).findOne({ userId });
     return doc ? profileDocToProfile(doc) : null;
+  }
+
+  // ---- Daily goals (irreversible) -----------------------------------------
+
+  async setDailyGoal(userId: string, date: string, targetMinutes: number): Promise<boolean> {
+    try {
+      const doc: DailyGoalDoc = {
+        _id: crypto.randomUUID(),
+        userId,
+        date,
+        targetMinutes,
+        createdAt: nowIso(),
+      };
+      await this.db.collection<DailyGoalDoc>(COLLECTIONS.DAILY_GOALS).insertOne(doc);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async getDailyGoal(userId: string, date: string): Promise<{ targetMinutes: number } | null> {
+    const doc = await this.db.collection<DailyGoalDoc>(COLLECTIONS.DAILY_GOALS).findOne({ userId, date });
+    return doc ? { targetMinutes: doc.targetMinutes } : null;
+  }
+
+  async getPartnerGoalWithProgress(userId: string): Promise<PartnerGoalProgress | null> {
+    const configured = await this.getConfiguredPartner(userId);
+    if (!configured) return null;
+
+    const partnerId = configured.partnerId;
+    const today = new Date().toISOString().split('T')[0];
+
+    const [goalDoc, sessions] = await Promise.all([
+      this.db.collection<DailyGoalDoc>(COLLECTIONS.DAILY_GOALS).findOne({ userId: partnerId, date: today }),
+      this.db.collection<FocusSessionDoc>(COLLECTIONS.FOCUS_SESSIONS).find({
+        userId: partnerId,
+        date: today,
+        status: SESSION_STATUS.COMPLETED,
+      }),
+    ]);
+
+    if (!goalDoc) return null;
+
+    const todayMinutes = sessions.reduce((sum, s) => sum + (s.durationMinutes ?? parseDuration(s.duration)), 0);
+    const targetMinutes = goalDoc.targetMinutes;
+    const percentage = targetMinutes > 0 ? Math.min(100, Math.round((todayMinutes / targetMinutes) * 100)) : 0;
+
+    const profile = await this.db.collection<ProfileDoc>(COLLECTIONS.PROFILES).findOne({ userId: partnerId });
+
+    return {
+      displayName: profile?.displayName ?? 'Partner',
+      targetMinutes,
+      todayMinutes,
+      percentage,
+    };
   }
 
   // ---- Partner privacy -----------------------------------------------------

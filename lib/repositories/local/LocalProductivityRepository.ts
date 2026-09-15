@@ -221,6 +221,52 @@ export class LocalJsonProductivityRepository implements ProductivityRepository {
     return session;
   }
 
+  async updateSession(_userId: string, sessionId: string, updates: Partial<Session>): Promise<Session | null> {
+    const data = await this.loadAppData();
+    const idx = data.sessions.findIndex((s) => String(s.id) === String(sessionId));
+    if (idx === -1) return null;
+    data.sessions[idx] = { ...data.sessions[idx], ...updates };
+    await dataService.saveData(data);
+    return data.sessions[idx];
+  }
+
+  async deleteSession(_userId: string, sessionId: string): Promise<boolean> {
+    const data = await this.loadAppData();
+    const before = data.sessions.length;
+    data.sessions = data.sessions.filter((s) => String(s.id) !== String(sessionId));
+    if (data.sessions.length === before) return false;
+    await dataService.saveData(data);
+    return true;
+  }
+
+  // ---- Task types ----------------------------------------------------------
+
+  async getTaskTypes(_userId: string): Promise<string[]> {
+    const data = await this.loadAppData();
+    return data.user?.taskTypes ?? [];
+  }
+
+  async addTaskType(_userId: string, taskType: string): Promise<string[]> {
+    const trimmed = taskType.trim();
+    if (!trimmed) return this.getTaskTypes(_userId);
+    const data = await this.loadAppData();
+    const types = data.user?.taskTypes ?? [];
+    if (!types.includes(trimmed)) {
+      types.push(trimmed);
+      data.user = { ...data.user, taskTypes: types } as AppData['user'];
+      await dataService.saveData(data);
+    }
+    return types;
+  }
+
+  async removeTaskType(_userId: string, taskType: string): Promise<string[]> {
+    const data = await this.loadAppData();
+    const types = (data.user?.taskTypes ?? []).filter((t) => t !== taskType);
+    data.user = { ...data.user, taskTypes: types } as AppData['user'];
+    await dataService.saveData(data);
+    return types;
+  }
+
   // ---- Shared focus (realtime) --------------------------------------------
 
   async setUserStatus(_userId: string, _status: UserStatus): Promise<void> {
@@ -413,6 +459,22 @@ export class LocalJsonProductivityRepository implements ProductivityRepository {
   async getProfile(userId: string): Promise<Profile | null> {
     const collab = await this.loadCollabData();
     return collab.profiles.find((p) => p.id === userId) ?? null;
+  }
+
+  // ---- Daily goals (irreversible) -----------------------------------------
+
+  async setDailyGoal(_userId: string, _date: string, _targetMinutes: number): Promise<boolean> {
+    return false;
+  }
+
+  async getDailyGoal(_userId: string, _date: string): Promise<{ targetMinutes: number } | null> {
+    return null;
+  }
+
+  async getPartnerGoalWithProgress(
+    _userId: string,
+  ): Promise<import('@/lib/repositories/ProductivityRepository').PartnerGoalProgress | null> {
+    return null;
   }
 
   // ---- Partner privacy -----------------------------------------------------

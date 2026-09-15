@@ -125,7 +125,7 @@ export default function DashboardGrid({ bundle, onNavigateTab, onUpdatePlanStatu
         const Icon = WIDGET_ICONS[widget.id];
         const meta = WIDGET_META[widget.id];
         return (
-          <div key={widget.id}>
+          <div key={widget.id} className="min-w-0">
             <WidgetCard title={meta.title} icon={Icon} collapsed={widget.collapsed}>
               {renderWidgetFor(widget, bundle, onNavigateTab, onUpdatePlanStatus)}
             </WidgetCard>

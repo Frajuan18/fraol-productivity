@@ -29,9 +29,8 @@ import Image from 'next/image';
 import { useStatistics } from '@/src/hooks/useStatistics';
 import { useTheme } from '@/src/contexts/ThemeContext';
 import { sumSessionMinutes, formatMinutesAsHoursMinutes } from '@/src/utils/time';
-import { formatLongDate } from '@/src/utils/date';
+import { formatLongDate, parseSessionDate } from '@/src/utils/date';
 import { AnimatedNumber } from '@/src/components/ui/AnimatedNumber';
-import AccentColorControl from '@/src/components/ui/AccentColorControl';
 import { getRepository } from '@/lib/repositories/repository';
 import { getPublicCloudEnabled } from '@/lib/config';
 import { privacySummary } from '@/lib/repositories/privacyMath';
@@ -103,7 +102,7 @@ function CompletionRing({
           transition={{ duration: reduced ? 0 : 0.6, ease: 'easeOut' }}
         />
       </svg>
-      <div className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold text-text tabular-nums">
+      <div className="absolute inset-0 flex items-center justify-center text-[11px] font-medium text-text tabular-nums">
         {pct}%
       </div>
     </div>
@@ -196,7 +195,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
     if (sessions.length === 0) return 'Building';
     const dayCounts: Record<string, number> = {};
     sessions.forEach((s) => {
-      const day = new Date(s.date).toLocaleDateString('en-US', { weekday: 'long' });
+      const day = parseSessionDate(s.date)?.toLocaleDateString('en-US', { weekday: 'long' }) ?? 'Unknown';
       dayCounts[day] = (dayCounts[day] || 0) + 1;
     });
     return Object.entries(dayCounts).sort(([, a], [, b]) => b - a)[0]?.[0] || 'Building';
@@ -287,11 +286,11 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* ===== Header ===== */}
       <motion.header {...fade(0)}>
         <div className="text-[13px] text-text-muted">{formatLongDate(new Date())}</div>
-        <h1 className="mt-1.5 text-[30px] sm:text-[32px] font-semibold leading-[1.1] tracking-[-0.025em] text-text">
+        <h1 className="mt-1 text-[24px] sm:text-[28px] font-medium leading-[1.1] tracking-[-0.025em] text-text">
           Profile
         </h1>
         <p className="mt-2 text-[14px] text-text-secondary">Your productivity, preferences, and personal settings.</p>
@@ -304,7 +303,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
             <div className="w-20 h-20 rounded-full overflow-hidden border border-border shadow-[var(--card-shadow)] bg-surface-hover flex items-center justify-center shrink-0">
               {imgFailed ? (
                 <div className="w-full h-full flex items-center justify-center bg-accent-muted">
-                  <span className="text-2xl font-semibold text-accent">{user?.[0]?.toUpperCase() || 'U'}</span>
+                  <span className="text-2xl font-medium text-accent">{user?.[0]?.toUpperCase() || 'U'}</span>
                 </div>
               ) : (
                 <Image
@@ -318,7 +317,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
               )}
             </div>
 
-            <h2 className="mt-4 text-[22px] font-semibold tracking-[-0.01em] text-text">{user || 'User'}</h2>
+            <h2 className="mt-4 text-[22px] font-medium tracking-[-0.01em] text-text">{user || 'User'}</h2>
             <p className="mt-1.5 text-sm text-text-secondary flex items-center gap-1.5">
               <FiCheckCircle size={14} className="text-success shrink-0" />
               <span>{summary}</span>
@@ -336,7 +335,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                   className="group px-1 py-1 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                   aria-label="View sessions"
                 >
-                  <div className="text-2xl font-semibold text-text tabular-nums">
+                  <div className="text-2xl font-medium text-text tabular-nums">
                     <AnimatedNumber value={stats.sessionCounts.total} />
                   </div>
                   <div className="text-xs text-text-secondary flex items-center justify-center gap-1 mt-1">
@@ -352,7 +351,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                   className="group px-1 py-1 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                   aria-label="View focus streak statistics"
                 >
-                  <div className="text-2xl font-semibold text-text tabular-nums">
+                  <div className="text-2xl font-medium text-text tabular-nums">
                     <AnimatedNumber value={stats.streak} />
                   </div>
                   <div className="text-xs text-text-secondary flex items-center justify-center gap-1 mt-1">
@@ -365,7 +364,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                   className="group px-1 py-1 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                   aria-label="View completion statistics"
                 >
-                  <div className="text-2xl font-semibold text-text tabular-nums">
+                  <div className="text-2xl font-medium text-text tabular-nums">
                     <AnimatedNumber value={stats.successRate} />
                     <span className="text-base text-text-secondary">%</span>
                   </div>
@@ -392,7 +391,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                   <FiActivity size={16} className="text-accent" />
                 </span>
                 <div>
-                  <h2 className="text-[16px] font-semibold tracking-[-0.01em] text-text">Personal productivity</h2>
+                  <h2 className="text-[16px] font-medium tracking-[-0.01em] text-text">Personal productivity</h2>
                   <p className="text-xs text-text-muted mt-0.5">Your focus and progress at a glance.</p>
                 </div>
               </div>
@@ -405,7 +404,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                     </span>
                     <span className="text-xs text-text-secondary">Focus Time</span>
                   </div>
-                  <div className="mt-3 text-3xl font-semibold tracking-tight text-text tabular-nums leading-none">
+                  <div className="mt-3 text-3xl font-medium tracking-tight text-text tabular-nums leading-none">
                     {displayTime}
                   </div>
                   <div className="mt-1.5 text-[11px] text-text-muted">Total focus time</div>
@@ -424,7 +423,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                     </span>
                     <span className="text-xs text-text-secondary">Plans</span>
                   </div>
-                  <div className="mt-3 text-3xl font-semibold tracking-tight text-text tabular-nums leading-none">
+                  <div className="mt-3 text-3xl font-medium tracking-tight text-text tabular-nums leading-none">
                     <AnimatedNumber value={stats.planCounts.total} />
                   </div>
                   <div className="mt-1.5 text-[11px] text-text-muted">{planSupport}</div>
@@ -445,7 +444,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                     </span>
                     <span className="text-xs text-text-secondary">Best Day</span>
                   </div>
-                  <div className="mt-2.5 text-xl font-semibold tracking-tight text-text leading-none truncate">
+                  <div className="mt-2.5 text-xl font-medium tracking-tight text-text leading-none truncate">
                     {bestDay}
                   </div>
                   <div className="mt-1.5 text-[11px] text-text-muted leading-snug">{bestDaySupport}</div>
@@ -461,7 +460,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                     </div>
                     {hasSessions && <CompletionRing value={stats.successRate} reduced={reduced} />}
                   </div>
-                  <div className="mt-2.5 text-xl font-semibold tracking-tight text-text tabular-nums leading-none">
+                  <div className="mt-2.5 text-xl font-medium tracking-tight text-text tabular-nums leading-none">
                     {hasSessions ? `${stats.successRate}%` : '\u2014'}
                   </div>
                   <div className="mt-1.5 text-[11px] text-text-muted leading-snug">{completionSupport}</div>
@@ -474,7 +473,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                     </span>
                     <span className="text-xs text-text-secondary">Plans Done</span>
                   </div>
-                  <div className="mt-2.5 text-xl font-semibold tracking-tight text-text tabular-nums leading-none">
+                  <div className="mt-2.5 text-xl font-medium tracking-tight text-text tabular-nums leading-none">
                     {hasPlans ? `${stats.planCompletionRate}%` : '\u2014'}
                   </div>
                   <div className="mt-1.5 text-[11px] text-text-muted leading-snug">{plansDoneSupport}</div>
@@ -491,7 +490,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                   <FiSettings size={16} className="text-accent" />
                 </span>
                 <div>
-                  <h2 className="text-[16px] font-semibold tracking-[-0.01em] text-text">Appearance</h2>
+                  <h2 className="text-[16px] font-medium tracking-[-0.01em] text-text">Appearance</h2>
                   <p className="text-xs text-text-muted mt-0.5">Choose how Productivity looks and feels.</p>
                 </div>
               </div>
@@ -536,12 +535,6 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                 <div className="h-px bg-divider" />
 
                 <div className="px-4 py-4">
-                  <AccentColorControl />
-                </div>
-
-                <div className="h-px bg-divider" />
-
-                <div className="px-4 py-4">
                   <div className="text-[13px] font-medium text-text">Live Preview</div>
                   <div className="text-xs text-text-muted mt-0.5">A quick look at your selected accent.</div>
                   <div className="mt-3 rounded-xl border border-border bg-surface p-3.5 space-y-3">
@@ -553,7 +546,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                       <span className="text-[10px] text-accent">Selected</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-lg bg-accent px-3 h-8 text-[12px] font-semibold text-accent-contrast">
+                      <span className="inline-flex items-center rounded-lg bg-accent px-3 h-8 text-[12px] font-medium text-accent-contrast">
                         Primary button
                       </span>
                       <div className="flex-1 h-1.5 rounded-full bg-surface-hover overflow-hidden">
@@ -589,7 +582,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                   <FiLock size={16} className="text-accent" />
                 </span>
                 <div>
-                  <h2 className="text-[16px] font-semibold tracking-[-0.01em] text-text">Partner privacy</h2>
+                  <h2 className="text-[16px] font-medium tracking-[-0.01em] text-text">Partner privacy</h2>
                   <p className="text-xs text-text-muted mt-0.5">Control what your partner can see.</p>
                 </div>
               </div>
@@ -744,7 +737,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                     <FiLogOut size={18} className="text-danger" />
                   </span>
                   <div className="min-w-0">
-                    <div className="text-[15px] font-semibold text-text">Sign Out</div>
+                    <div className="text-[15px] font-medium text-text">Sign Out</div>
                     <div className="text-xs text-text-muted mt-0.5">
                       Sign out of your Productivity account on this device.
                     </div>
@@ -753,7 +746,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                 <button
                   ref={signOutRef}
                   onClick={openDialog}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-danger/25 bg-danger-muted/40 hover:bg-danger-muted px-3.5 h-10 text-[13px] font-semibold text-danger transition-colors duration-150 shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-danger/25 bg-danger-muted/40 hover:bg-danger-muted px-3.5 h-10 text-[13px] font-medium text-danger transition-colors duration-150 shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                 >
                   <FiLogOut size={14} /> Sign Out
                 </button>
@@ -791,7 +784,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
               <div className="w-12 h-12 rounded-2xl bg-danger-muted flex items-center justify-center">
                 <FiLogOut size={22} className="text-danger" />
               </div>
-              <h2 id="signout-title" className="mt-4 text-lg font-semibold tracking-[-0.01em] text-text">
+              <h2 id="signout-title" className="mt-4 text-lg font-medium tracking-[-0.01em] text-text">
                 Sign out?
               </h2>
               <p id="signout-desc" className="mt-1.5 text-sm text-text-secondary">
@@ -807,7 +800,7 @@ export default function TabProfile({ user, sessions = [], plans = [], onNavigate
                 </button>
                 <button
                   onClick={confirmSignOut}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-danger hover:bg-danger-muted px-4 h-10 text-[13px] font-semibold text-white transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-danger hover:bg-danger-muted px-4 h-10 text-[13px] font-medium text-white transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                 >
                   <FiLogOut size={14} /> Sign Out
                 </button>

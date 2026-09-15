@@ -9,6 +9,7 @@ export interface UserDoc extends Document {
   passwordHash: string;
   passwordSalt: string;
   displayName: string;
+  taskTypes?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -244,4 +245,27 @@ export interface DashboardLayoutDoc extends Document {
   userId: string;
   layout: DashboardLayout;
   updatedAt: string;
+}
+
+/**
+ * Per-user custom task type labels (e.g. "Study", "Work", "Exercise"). One document per
+ * user, keyed by `_id === userId`.
+ */
+export interface TaskTypesDoc extends Document {
+  _id: string;
+  userId: string;
+  types: string[];
+  updatedAt: string;
+}
+
+/**
+ * Irreversible daily focus goal. One document per user per day. Insert-only — once set
+ * for a given date, the goal cannot be changed (enforced by unique index).
+ */
+export interface DailyGoalDoc extends Document {
+  _id: string;
+  userId: string;
+  date: string;
+  targetMinutes: number;
+  createdAt: string;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
   FiUsers,
@@ -194,6 +194,7 @@ export default function TabPartner() {
   const [uploadingSnapshot, setUploadingSnapshot] = useState(false);
   const [activityItems, setActivityItems] = useState<SharedActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
+  const [activityPending, activityStartTransition] = useTransition();
   const [activityHasMore, setActivityHasMore] = useState(false);
   const [activityCursor, setActivityCursor] = useState<string | null>(null);
   const [activityError, setActivityError] = useState<string | null>(null);
@@ -940,7 +941,7 @@ export default function TabPartner() {
         </p>
       </motion.header>
 
-      <div className="flex flex-wrap gap-1 rounded-[14px] border border-border bg-surface-hover p-1 w-fit">
+      <div className="flex flex-wrap gap-1.5 rounded-[14px] border border-border bg-surface-hover p-1 overflow-x-auto sm:overflow-visible">
         {SECTIONS.map((s) => {
           const Icon = s.icon;
           const active = section === s.id;
@@ -953,7 +954,7 @@ export default function TabPartner() {
               className={sectionClass(active)}
             >
               <Icon size={15} />
-              {s.label}
+              <span className="whitespace-nowrap">{s.label}</span>
               {s.id === 'chat' && unread > 0 && (
                 <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold leading-none text-accent-contrast">
                   {unread > 99 ? '99+' : unread}
@@ -1113,7 +1114,7 @@ export default function TabPartner() {
 
               {section === 'plans' && (
                 <div className="space-y-6">
-                  <div className="flex flex-wrap gap-1 rounded-[14px] border border-border bg-surface-hover p-1 w-fit">
+                  <div className="flex flex-wrap gap-1.5 rounded-[14px] border border-border bg-surface-hover p-1 overflow-x-auto sm:overflow-visible">
                     {(
                       [
                         { id: 'common', label: 'Common plans' },
@@ -1721,8 +1722,8 @@ export default function TabPartner() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => void loadActivity()}
-                      disabled={activityLoading}
+                      onClick={() => activityStartTransition(() => void loadActivity())}
+                      disabled={activityLoading || activityPending}
                       className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-3 h-10 text-[13px] font-semibold text-text-secondary hover:text-text hover:bg-surface-hover hover:border-border-hover transition-colors duration-150 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                     >
                       <FiRefreshCw size={13} className={activityLoading ? 'animate-spin' : ''} />
@@ -1968,7 +1969,7 @@ export default function TabPartner() {
                         return (
                           <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                             <div
-                              className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 ${
+                              className={`max-w-[85vw] sm:max-w-[65%] md:max-w-[55%] rounded-2xl px-3.5 py-2.5 ${
                                 mine
                                   ? 'rounded-br-md bg-accent text-accent-contrast'
                                   : 'rounded-bl-md border border-border bg-surface-hover/50 text-text'
@@ -1981,7 +1982,7 @@ export default function TabPartner() {
                                       src={`/api/media/${m.mediaId}`}
                                       alt={m.body ?? 'Shared snapshot'}
                                       loading="lazy"
-                                      className={`max-h-56 w-auto max-w-[240px] rounded-lg object-contain ${
+                                      className={`max-h-56 w-auto max-w-[180px] sm:max-w-[240px] lg:max-w-[280px] rounded-lg object-contain ${
                                         m.mediaStatus === 'exported_and_removed' ? 'opacity-40 grayscale' : ''
                                       }`}
                                     />

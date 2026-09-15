@@ -25,6 +25,7 @@ import {
   FiCalendar,
 } from 'react-icons/fi';
 import { useTimer, partsToSeconds } from '@/src/hooks/useTimer';
+import { useStopwatch } from '@/src/hooks/useStopwatch';
 import { PRESET_DURATIONS, QUICK_TASKS, DEFAULT_TASK } from '@/src/constants';
 import { formatSecondsAsDuration } from '@/src/utils/time';
 import type { Session } from '@/src/types';
@@ -184,6 +185,7 @@ export const SessionTimer = memo(function SessionTimer({
 }: SessionTimerProps) {
   const reduced = useReducedMotion();
   const [mode, setMode] = useState<'setup' | 'active' | 'complete'>('setup');
+  const [timerMode, setTimerMode] = useState<'timer' | 'stopwatch'>('timer');
   const [selectedTask, setSelectedTask] = useState(initialTask || DEFAULT_TASK);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddTypeInput, setShowAddTypeInput] = useState(false);
@@ -200,6 +202,7 @@ export const SessionTimer = memo(function SessionTimer({
   const [isStarting, setIsStarting] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [lastCompleted, setLastCompleted] = useState<{ task: string; seconds: number } | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState('');
   const startTimestampRef = useRef<Date | null>(null);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -231,6 +234,7 @@ export const SessionTimer = memo(function SessionTimer({
     const session: Session = {
       id: new Date().getTime(),
       task: taskName,
+      subject: selectedSubject || undefined,
       duration: formatSecondsAsDuration(elapsedSeconds),
       date: new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
       status: 'Completed',
@@ -251,6 +255,8 @@ export const SessionTimer = memo(function SessionTimer({
     onComplete: handleAutoComplete,
   });
 
+  const stopwatch = useStopwatch();
+
   useEffect(() => {
     return () => {
       if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
@@ -270,7 +276,7 @@ export const SessionTimer = memo(function SessionTimer({
       showFeedback('Choose a task to focus on.', 'warning');
       return;
     }
-    if (timer.totalSeconds <= 0) {
+    if (timerMode === 'timer' && timer.totalSeconds <= 0) {
       showFeedback('Choose a duration first.', 'warning');
       return;
     }
@@ -280,7 +286,11 @@ export const SessionTimer = memo(function SessionTimer({
         setIsStarting(false);
         setMode('active');
         startTimestampRef.current = new Date();
-        timer.start();
+        if (timerMode === 'timer') {
+          timer.start();
+        } else {
+          stopwatch.start();
+        }
         showFeedback('Session started.', 'success');
       },
       reduced ? 0 : 400,
@@ -288,15 +298,17 @@ export const SessionTimer = memo(function SessionTimer({
   }
 
   function handleAddTime(seconds: number) {
-    timer.addTime(seconds);
-    if (!timer.isRunning) {
-      timer.start();
+    if (timerMode === 'timer') {
+      timer.addTime(seconds);
+      if (!timer.isRunning) {
+        timer.start();
+      }
     }
     showFeedback(`Added ${seconds / 60} minutes.`);
   }
 
   function handleEndSession() {
-    const elapsed = timer.totalSeconds - timer.remainingSeconds;
+    const elapsed = timerMode === 'timer' ? timer.totalSeconds - timer.remainingSeconds : stopwatch.elapsedSeconds;
     if (!confirmEnd && elapsed >= 60) {
       setConfirmEnd(true);
       return;
@@ -309,8 +321,13 @@ export const SessionTimer = memo(function SessionTimer({
   function resetSession() {
     setMode('setup');
     setConfirmEnd(false);
-    timer.reset();
+    if (timerMode === 'timer') {
+      timer.reset();
+    } else {
+      stopwatch.reset();
+    }
     setSearchQuery('');
+    setSelectedSubject('');
     setShowAddTypeInput(false);
     setShowCustomTime(false);
     setShowSavedSetups(false);
@@ -321,7 +338,11 @@ export const SessionTimer = memo(function SessionTimer({
   function startAnother() {
     setMode('setup');
     setConfirmEnd(false);
-    timer.reset();
+    if (timerMode === 'timer') {
+      timer.reset();
+    } else {
+      stopwatch.reset();
+    }
     startTimestampRef.current = null;
     showFeedback('Ready for another session.');
   }
@@ -588,6 +609,21 @@ export const SessionTimer = memo(function SessionTimer({
                       </button>
                     )}
                   </div>
+                </section>
+
+                {/* ===== Subject ===== */}
+                <section aria-labelledby="subject-heading" className="mt-5">
+                  <label id="subject-heading" className="text-xs font-semibold text-text-secondary block mb-2.5">
+                    Subject <span className="text-text-muted font-normal">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedSubject}
+                    onChange={(e) => setSelectedSubject(e.target.value)}
+                    placeholder="e.g. Mathematics, Chapter 3"
+                    aria-label="Focus subject"
+                    className="w-full h-10 px-3 bg-surface-hover border border-border rounded-[12px] text-[14px] text-text placeholder:text-text-muted outline-none transition-all duration-200 focus:bg-surface-raised focus:border-border-hover focus:ring-2 focus:ring-[var(--focus-ring)]"
+                  />
                 </section>
 
                 {/* ===== Duration ===== */}
@@ -911,111 +947,153 @@ export const SessionTimer = memo(function SessionTimer({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: reduced ? 0 : 0.3 }}
-            className="px-6 sm:px-10 py-10 lg:py-14"
+            className="px-6 sm:px-10 py-8 lg:py-10"
           >
-            <div className="flex flex-col items-center max-w-md mx-auto">
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-medium text-text-secondary">{taskName}</span>
+            <div className="flex flex-col items-center max-w-lg mx-auto">
+              {/* Timer / Stopwatch toggle */}
+              <div className="flex items-center bg-surface-hover rounded-full p-1 mb-6">
+                <button
+                  onClick={() => {
+                    if (timerMode !== 'timer') {
+                      setTimerMode('timer');
+                    }
+                  }}
+                  className={`h-9 px-5 rounded-full text-[13px] font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                    timerMode === 'timer'
+                      ? 'bg-accent text-accent-contrast shadow-sm'
+                      : 'text-text-secondary hover:text-text'
+                  }`}
+                >
+                  Timer
+                </button>
+                <button
+                  onClick={() => {
+                    if (timerMode !== 'stopwatch') {
+                      setTimerMode('stopwatch');
+                    }
+                  }}
+                  className={`h-9 px-5 rounded-full text-[13px] font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                    timerMode === 'stopwatch'
+                      ? 'bg-accent text-accent-contrast shadow-sm'
+                      : 'text-text-secondary hover:text-text'
+                  }`}
+                >
+                  Stopwatch
+                </button>
               </div>
 
-              <div className="relative mt-6" role="timer" aria-live="off" aria-label="Remaining time">
-                <svg
-                  viewBox="0 0 120 120"
-                  className="w-[min(280px,calc(100vw-80px))] h-[min(280px,calc(100vw-80px))] sm:w-[316px] sm:h-[316px] -rotate-90"
-                  aria-hidden="true"
-                >
-                  <circle cx="60" cy="60" r={ringRadius} fill="none" stroke="var(--border)" strokeWidth="3.5" />
-                  <motion.circle
-                    cx="60"
-                    cy="60"
-                    r={ringRadius}
-                    fill="none"
-                    stroke="var(--accent)"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                    strokeDasharray={ringCircumference}
-                    animate={{
-                      strokeDashoffset: ringCircumference * (1 - timer.progress / 100),
-                    }}
-                    transition={{ duration: reduced ? 0 : 0.45, ease: 'easeOut' }}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="sr-only">{formatClock(timer.remainingSeconds)}</span>
-                  <div className="flex items-center gap-1" aria-hidden>
-                    {(() => {
-                      const digits = formatClock(timer.remainingSeconds).replace(/:/g, '');
-                      return (
-                        <>
-                          <FlipDigit value={digits[0]} />
-                          <FlipDigit value={digits[1]} />
-                          <FlipDivider />
-                          <FlipDigit value={digits[2]} />
-                          <FlipDigit value={digits[3]} />
-                          <FlipDivider />
-                          <FlipDigit value={digits[4]} />
-                          <FlipDigit value={digits[5]} />
-                        </>
-                      );
-                    })()}
+              {/* Quick time pills (only for timer mode) */}
+              {timerMode === 'timer' && (
+                <div className="flex items-center gap-3 mb-6">
+                  {ADD_TIME_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.label}
+                      onClick={() => handleAddTime(opt.seconds)}
+                      className="h-10 px-5 rounded-full bg-surface-hover hover:bg-surface-raised text-text-secondary font-medium text-[14px] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                    >
+                      {opt.label.replace('+', '')}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Main timer card */}
+              <div className="relative w-full bg-surface rounded-[32px] p-4 overflow-hidden border border-border">
+                <div className="flex items-stretch gap-4">
+                  {/* Left side - Time display */}
+                  <div className="flex-1 flex flex-col justify-center py-6 pl-6">
+                    <span className="text-[15px] text-text-muted font-medium mb-1">
+                      {timerMode === 'timer' ? 'Timer' : 'Stopwatch'}
+                    </span>
+                    <span className="text-[64px] font-bold text-text leading-none tracking-tight font-mono tabular-nums">
+                      {timerMode === 'timer'
+                        ? (() => {
+                            const remaining = formatClock(timer.remainingSeconds);
+                            const parts = remaining.split(':');
+                            return `${parts[0]}:${parts[1]}`;
+                          })()
+                        : stopwatch.display}
+                    </span>
+                    <button
+                      onClick={handleEndSession}
+                      className="mt-5 h-12 px-6 bg-danger/10 hover:bg-danger/20 text-danger border border-danger/20 rounded-[14px] font-semibold text-[14px] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus-ring w-fit"
+                    >
+                      Stop
+                    </button>
                   </div>
-                  <span className="mt-3 text-xs text-text-muted tabular-nums">
-                    {Math.round(timer.progress)}% complete
-                  </span>
+
+                  {/* Right side - Circular progress + pause */}
+                  <div className="w-[200px] h-[180px] bg-info/15 rounded-[24px] flex items-center justify-center shrink-0">
+                    <button
+                      onClick={() => {
+                        const isRunning = timerMode === 'timer' ? timer.isRunning : stopwatch.isRunning;
+                        if (isRunning) {
+                          if (timerMode === 'timer') {
+                            timer.pause();
+                          } else {
+                            stopwatch.pause();
+                          }
+                          showFeedback('Session paused.');
+                        } else {
+                          if (timerMode === 'timer') {
+                            timer.start();
+                          } else {
+                            stopwatch.start();
+                          }
+                          showFeedback('Session resumed.');
+                        }
+                      }}
+                      className="relative w-[130px] h-[130px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-focus-ring rounded-full"
+                      aria-label={
+                        timerMode === 'timer'
+                          ? timer.isRunning
+                            ? 'Pause session'
+                            : 'Resume session'
+                          : stopwatch.isRunning
+                            ? 'Pause stopwatch'
+                            : 'Resume stopwatch'
+                      }
+                    >
+                      <svg viewBox="0 0 130 130" className="absolute inset-0 w-full h-full -rotate-90">
+                        <circle cx="65" cy="65" r="58" fill="none" stroke="var(--border)" strokeWidth="8" />
+                        <motion.circle
+                          cx="65"
+                          cy="65"
+                          r="58"
+                          fill="none"
+                          stroke="var(--info)"
+                          strokeWidth="8"
+                          strokeLinecap="round"
+                          strokeDasharray={2 * Math.PI * 58}
+                          animate={{
+                            strokeDashoffset: timerMode === 'timer' ? 2 * Math.PI * 58 * (1 - timer.progress / 100) : 0,
+                          }}
+                          transition={{ duration: reduced ? 0 : 0.45, ease: 'easeOut' }}
+                        />
+                      </svg>
+                      <div className="relative z-10 w-[72px] h-[72px] bg-surface rounded-full flex items-center justify-center border border-border">
+                        {(timerMode === 'timer' ? timer.isRunning : stopwatch.isRunning) ? (
+                          <FiPause size={28} className="text-text" aria-hidden />
+                        ) : (
+                          <FiPlay size={28} className="text-text ml-1" fill="currentColor" aria-hidden />
+                        )}
+                      </div>
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div className="mt-5 flex items-center gap-2 text-sm text-text-muted" aria-live="polite">
-                <span className={`w-2 h-2 rounded-full ${timer.isRunning ? 'bg-accent/80' : 'bg-warning/80'}`} />
-                {timer.isRunning ? 'Focus session in progress' : 'Session paused'}
-              </div>
+              {/* Home indicator */}
+              <div className="mt-6 w-32 h-1.5 bg-text-muted/30 rounded-full" />
 
-              <div className="mt-7 flex items-center gap-3 w-full justify-center flex-wrap">
-                {!timer.isRunning ? (
-                  <button
-                    onClick={timer.start}
-                    disabled={timer.remainingSeconds === 0}
-                    className="h-12 px-6 rounded-[14px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold text-[15px] flex items-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
-                  >
-                    <FiPlay size={17} fill="currentColor" aria-hidden /> Resume
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      timer.pause();
-                      showFeedback('Session paused.');
-                    }}
-                    className="h-12 px-6 rounded-[14px] bg-accent hover:bg-accent-hover text-accent-contrast font-semibold text-[15px] flex items-center gap-2 transition-colors focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
-                  >
-                    <FiPause size={17} aria-hidden /> Pause
-                  </button>
-                )}
-                <button
-                  onClick={handleEndSession}
-                  className="h-12 px-6 rounded-[14px] bg-danger/10 text-danger border border-danger/20 font-semibold text-[15px] hover:bg-danger/20 transition-colors focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
-                >
-                  End session
-                </button>
-              </div>
-
-              <div className="mt-4 flex items-center gap-2 flex-wrap justify-center">
-                {ADD_TIME_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.label}
-                    onClick={() => handleAddTime(opt.seconds)}
-                    className="h-10 px-3 rounded-lg bg-surface-hover border border-border text-text-secondary hover:text-text transition-colors text-[13px] font-medium focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-                <button
-                  onClick={timer.reset}
-                  className="w-10 h-10 flex items-center justify-center rounded-lg bg-surface-hover border border-border text-text-secondary hover:text-text transition-colors focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
-                  title="Reset time"
-                  aria-label="Reset time"
-                >
-                  <FiRotateCcw size={15} />
-                </button>
+              {/* Status text */}
+              <div className="mt-4 flex items-center gap-2 text-sm text-text-muted" aria-live="polite">
+                <span
+                  className={`w-2 h-2 rounded-full ${(timerMode === 'timer' ? timer.isRunning : stopwatch.isRunning) ? 'bg-info' : 'bg-warning/80'}`}
+                />
+                {(timerMode === 'timer' ? timer.isRunning : stopwatch.isRunning)
+                  ? 'Focus session in progress'
+                  : 'Session paused'}
               </div>
 
               <AnimatePresence>

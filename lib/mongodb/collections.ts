@@ -21,6 +21,8 @@ export const COLLECTIONS = {
   WEEKLY_ANALYTICS: 'weeklyAnalytics',
   MONTHLY_ANALYTICS: 'monthlyAnalytics',
   DASHBOARD_LAYOUTS: 'dashboardLayouts',
+  TASK_TYPES: 'taskTypes',
+  DAILY_GOALS: 'dailyGoals',
 } as const;
 
 export type CollectionName = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];

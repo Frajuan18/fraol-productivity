@@ -86,6 +86,7 @@ export const SessionHistoryList = memo(function SessionHistoryList({
                         <div className="text-sm font-medium text-text truncate">{session.task}</div>
                         <div className="flex items-center gap-2 text-xs text-text-muted mt-0.5">
                           <span className="tabular-nums">{session.duration}</span>
+                          {session.subject && <span className="text-accent/70">· {session.subject}</span>}
                           {session.startTime && (
                             <span className="tabular-nums">
                               {session.startTime}
@@ -122,6 +123,12 @@ export const SessionHistoryList = memo(function SessionHistoryList({
                                   <dt className="text-text-muted">Duration</dt>
                                   <dd className="mt-0.5 text-text font-medium tabular-nums">{session.duration}</dd>
                                 </div>
+                                {session.subject && (
+                                  <div>
+                                    <dt className="text-text-muted">Subject</dt>
+                                    <dd className="mt-0.5 text-text font-medium">{session.subject}</dd>
+                                  </div>
+                                )}
                                 <div>
                                   <dt className="text-text-muted">Start</dt>
                                   <dd className="mt-0.5 text-text font-medium tabular-nums">

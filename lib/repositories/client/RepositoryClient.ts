@@ -78,16 +78,7 @@ export class RepositoryClient implements ProductivityRepository {
   // ---- Core app data ------------------------------------------------------
 
   async loadAppData(): Promise<AppData> {
-    try {
-      return await this.call<AppData>('appData.load');
-    } catch {
-      return {
-        plans: [],
-        sessions: [],
-        stats: {} as Stats,
-        user: { name: '', streak: 0, totalFocusHours: 0, taskTypes: [] },
-      };
-    }
+    return this.call<AppData>('appData.load');
   }
 
   async saveAppData(): Promise<boolean> {
@@ -153,6 +144,28 @@ export class RepositoryClient implements ProductivityRepository {
 
   async createSession(_userId: string, input: SessionInput): Promise<Session> {
     return this.call<Session>('sessions.create', { input });
+  }
+
+  async updateSession(_userId: string, sessionId: string, updates: Partial<Session>): Promise<Session | null> {
+    return this.call<Session | null>('sessions.update', { sessionId, updates });
+  }
+
+  async deleteSession(_userId: string, sessionId: string): Promise<boolean> {
+    return this.call<boolean>('sessions.delete', { sessionId });
+  }
+
+  // ---- Task types ----------------------------------------------------------
+
+  async getTaskTypes(_userId: string): Promise<string[]> {
+    return this.call<string[]>('taskTypes.get');
+  }
+
+  async addTaskType(_userId: string, taskType: string): Promise<string[]> {
+    return this.call<string[]>('taskTypes.add', { taskType });
+  }
+
+  async removeTaskType(_userId: string, taskType: string): Promise<string[]> {
+    return this.call<string[]>('taskTypes.remove', { taskType });
   }
 
   // ---- Statistics ---------------------------------------------------------
@@ -221,6 +234,37 @@ export class RepositoryClient implements ProductivityRepository {
   async getProfile(_userId: string): Promise<Profile | null> {
     try {
       return await this.call<Profile | null>('profile.get', { userId: _userId });
+    } catch {
+      return null;
+    }
+  }
+
+  // ---- Daily goals (irreversible) -----------------------------------------
+
+  async setDailyGoal(_userId: string, date: string, targetMinutes: number): Promise<boolean> {
+    try {
+      return await this.call<boolean>('goal.set', { date, targetMinutes });
+    } catch {
+      return false;
+    }
+  }
+
+  async getDailyGoal(_userId: string, date: string): Promise<{ targetMinutes: number } | null> {
+    try {
+      return await this.call<{ targetMinutes: number } | null>('goal.get', { date });
+    } catch {
+      return null;
+    }
+  }
+
+  async getPartnerGoalWithProgress(
+    _userId: string,
+  ): Promise<import('@/lib/repositories/ProductivityRepository').PartnerGoalProgress | null> {
+    try {
+      return await this.call<import('@/lib/repositories/ProductivityRepository').PartnerGoalProgress | null>(
+        'partner.goal',
+        {},
+      );
     } catch {
       return null;
     }

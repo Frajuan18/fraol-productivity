@@ -42,6 +42,7 @@ export interface PlanInput {
 
 export interface SessionInput {
   task: string;
+  subject?: string;
   duration: string;
   date: string;
   status: string;
@@ -105,6 +106,13 @@ export interface PartnerStatistics {
   recentActivity: { date: string; task: string; minutes: number }[];
 }
 
+export interface PartnerGoalProgress {
+  displayName: string;
+  targetMinutes: number;
+  todayMinutes: number;
+  percentage: number;
+}
+
 export interface RealtimeHandlers {
   onPartnerStatus?: (partnerId: string, status: Profile['status'], lastSeenAt: string) => void;
   onMessage?: (message: Message) => void;
@@ -129,7 +137,7 @@ export interface ProductivityRepository {
   getCurrentUser(): Promise<AuthUser | null>;
 
   // ---- Core app data (legacy JSON compatibility for the dashboard) --------
-  loadAppData(): Promise<AppData>;
+  loadAppData(userId?: string): Promise<AppData>;
   saveAppData(data: AppData): Promise<boolean>;
 
   // ---- Plans --------------------------------------------------------------
@@ -152,6 +160,13 @@ export interface ProductivityRepository {
   getSessions(userId: string): Promise<Session[]>;
   listSessions(userId: string, cursor?: string, limit?: number): Promise<SessionPage>;
   createSession(userId: string, input: SessionInput): Promise<Session>;
+  updateSession(userId: string, sessionId: string, updates: Partial<Session>): Promise<Session | null>;
+  deleteSession(userId: string, sessionId: string): Promise<boolean>;
+
+  // ---- Task types ---------------------------------------------------------
+  getTaskTypes(userId: string): Promise<string[]>;
+  addTaskType(userId: string, taskType: string): Promise<string[]>;
+  removeTaskType(userId: string, taskType: string): Promise<string[]>;
 
   // ---- Paged history (Phase 11) -------------------------------------------
   /**
@@ -182,6 +197,11 @@ export interface ProductivityRepository {
   getPartnerStatistics(userId: string): Promise<PartnerStatistics | null>;
   getPartnerOverview(userId: string): Promise<PartnerOverview | null>;
   getProfile(userId: string): Promise<Profile | null>;
+
+  // ---- Daily goals (irreversible) -----------------------------------------
+  setDailyGoal(userId: string, date: string, targetMinutes: number): Promise<boolean>;
+  getDailyGoal(userId: string, date: string): Promise<{ targetMinutes: number } | null>;
+  getPartnerGoalWithProgress(userId: string): Promise<PartnerGoalProgress | null>;
 
   // ---- Partner privacy -----------------------------------------------------
   getPrivacySettings(userId: string): Promise<PartnerPrivacySettings>;

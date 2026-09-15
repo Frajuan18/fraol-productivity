@@ -32,8 +32,8 @@ async function fetchRemoteVerse(): Promise<BibleVerse> {
 }
 
 export function useBibleVerse(): UseBibleVerseResult {
-  const [verse, setVerse] = useState<BibleVerse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [verse, setVerse] = useState<BibleVerse | null>(() => pickRandom(FALLBACK_VERSES));
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
 
@@ -41,6 +41,8 @@ export function useBibleVerse(): UseBibleVerseResult {
 
   useEffect(() => {
     let cancelled = false;
+    setIsLoading(true); // eslint-disable-line react-hooks/set-state-in-effect
+    setError(null);
 
     fetchRemoteVerse()
       .then((result) => {

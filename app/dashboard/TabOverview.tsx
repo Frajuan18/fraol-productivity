@@ -8,6 +8,7 @@ import { formatLongDate } from '@/src/utils/date';
 import type { Session, Plan, PlanStatus } from '@/src/types';
 import type { AnalyticsResult } from '@/lib/analytics/types';
 import DashboardGrid from './DashboardGrid';
+import GoalProgress from './widgets/GoalProgressWidget';
 
 interface TabOverviewProps {
   dailyStats: { focusTime: string; sessions: number; streak: string; productivity: string };
@@ -64,11 +65,11 @@ export default function TabOverview({
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <motion.header {...fade(0)} className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="max-w-[640px]">
           <div className="text-[13px] text-text-muted">{formatLongDate(todayDate)}</div>
-          <h1 className="mt-1.5 text-[34px] sm:text-[40px] font-semibold leading-[1.1] tracking-[-0.025em] text-text">
+          <h1 className="mt-1 text-[24px] sm:text-[28px] font-medium leading-[1.15] tracking-[-0.025em] text-text">
             Good {greeting}, {userName}
           </h1>
           <p className="mt-2 text-[15px] text-text-secondary">{dailySummary}</p>
@@ -136,6 +137,10 @@ export default function TabOverview({
       </motion.header>
 
       <motion.div {...fade(0.05)}>
+        <GoalProgress todayMinutes={bundle.todayMinutes} />
+      </motion.div>
+
+      <motion.div {...fade(0.1)}>
         <DashboardGrid
           bundle={bundle}
           onNavigateTab={(tab) => onNavigateTab?.(tab)}

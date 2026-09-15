@@ -12,6 +12,10 @@ export default function WeeklyProgressWidget({ bundle }: DashboardWidgetProps) {
 
   const weekMax = Math.max(...weekDays.map((d) => d.minutes), 1);
 
+  const gridLines = 4;
+  const gridStep = Math.ceil(weekMax / gridLines);
+  const gridValues = Array.from({ length: gridLines + 1 }, (_, i) => i * gridStep);
+
   return (
     <div className="flex h-full flex-col">
       <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
@@ -42,31 +46,48 @@ export default function WeeklyProgressWidget({ bundle }: DashboardWidgetProps) {
         </div>
       </div>
 
-      <div className="mt-6 flex items-end gap-1.5 border-b border-divider/70 h-20">
-        {weekDays.map((d, i) => {
-          const isToday = i === weekDays.length - 1;
-          const barHeight = Math.max(6, (d.minutes / weekMax) * 52);
-          const hasData = d.minutes > 0;
-          return (
-            <div key={d.date} className="group relative flex-1 flex flex-col items-center justify-end h-full">
-              <motion.span
-                role="img"
-                aria-label={`${d.label} — ${d.count} session${d.count !== 1 ? 's' : ''}, ${formatMinutesAsHoursMinutes(d.minutes)} focused`}
-                className={`w-full max-w-[20px] rounded-t-[5px] transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
-                  isToday
-                    ? 'bg-gradient-to-t from-accent to-accent-hover'
-                    : hasData
-                      ? 'bg-gradient-to-t from-accent/50 to-accent/30'
-                      : 'bg-surface-hover'
-                }`}
-                initial={{ height: 0 }}
-                animate={{ height: barHeight }}
-                transition={{ duration: reduced ? 0 : 0.4, ease: 'easeOut', delay: reduced ? 0 : i * 0.04 }}
-              />
-            </div>
-          );
-        })}
+      <div className="relative mt-6 h-24">
+        <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+          {gridValues
+            .slice()
+            .reverse()
+            .map((val) => (
+              <div key={val} className="relative w-full h-px">
+                <div className="absolute inset-x-0 top-0 h-px bg-divider/40" />
+                <span className="absolute -left-1 -top-2 text-[9px] text-text-muted tabular-nums">
+                  {formatMinutesAsHoursMinutes(val)}
+                </span>
+              </div>
+            ))}
+        </div>
+
+        <div className="absolute inset-0 left-6 flex items-end gap-1.5">
+          {weekDays.map((d, i) => {
+            const isToday = i === weekDays.length - 1;
+            const barHeight = Math.max(3, (d.minutes / weekMax) * 100);
+            const hasData = d.minutes > 0;
+            return (
+              <div key={d.date} className="group relative flex-1 flex flex-col items-center justify-end h-full">
+                <motion.span
+                  role="img"
+                  aria-label={`${d.label} — ${d.count} session${d.count !== 1 ? 's' : ''}, ${formatMinutesAsHoursMinutes(d.minutes)} focused`}
+                  className={`w-full max-w-[28px] rounded-t-[4px] transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                    isToday
+                      ? 'bg-gradient-to-t from-accent to-accent-hover'
+                      : hasData
+                        ? 'bg-gradient-to-t from-accent/50 to-accent/30'
+                        : 'bg-surface-hover'
+                  }`}
+                  initial={{ height: 0 }}
+                  animate={{ height: `${barHeight}%` }}
+                  transition={{ duration: reduced ? 0 : 0.4, ease: 'easeOut', delay: reduced ? 0 : i * 0.04 }}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
+
       <div className="flex justify-between px-0.5 mt-1.5">
         {weekDays.map((d, i) => (
           <span

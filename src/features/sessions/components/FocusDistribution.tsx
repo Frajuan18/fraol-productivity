@@ -5,7 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { FiTrendingUp, FiActivity, FiArrowDownRight, FiInfo, FiPieChart, FiArrowRight } from 'react-icons/fi';
 import { QUICK_TASKS } from '@/src/constants';
 import { parseDuration } from '@/src/utils/time';
-import { getWeekStart } from '@/src/utils/date';
+import { getWeekStart, parseSessionDate } from '@/src/utils/date';
 import type { SessionStatusFilter } from './SessionStatsBar';
 import type { Session } from '@/src/types';
 
@@ -34,8 +34,8 @@ const VIEW_W = 400;
 const VIEW_H = 360;
 
 function matchesRange(dateStr: string, range: DistributionRange): boolean {
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return true;
+  const d = parseSessionDate(dateStr);
+  if (!d) return true;
   const now = new Date();
   if (range === 'week') return d.getTime() >= getWeekStart().getTime();
   if (range === 'month') return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();

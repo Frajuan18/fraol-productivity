@@ -1,0 +1,18 @@
+﻿
+Name                        KB
+----                        --
+happy bull.png          1463.7
+no plan partner cow.png 1032.6
+set goal cow.png         838.5
+bg-3.jpg                   384
+happy cow.png            308.3
+sad cow.png              259.1
+keep it up cow.png       253.7
+bg-1.jpg                 247.4
+bg-2.jpg                 228.9
+worried cow.png          226.2
+bg-4.jpg                 188.8
+bg-5.jpg                 186.2
+
+
+

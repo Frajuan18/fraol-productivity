@@ -12,6 +12,8 @@ import {
   FiClock,
   FiSearch,
   FiTag,
+  FiChevronLeft,
+  FiChevronRight,
 } from 'react-icons/fi';
 import { TabNav } from '@/src/components/ui/TabNav';
 import { SessionTimer } from './components/SessionTimer';
@@ -19,7 +21,8 @@ import { SessionCalendar } from './components/SessionCalendar';
 import { SessionHistoryList } from './components/SessionHistoryList';
 import { SessionStatsBar, type SessionStatusFilter } from './components/SessionStatsBar';
 import { FocusDistribution } from './components/FocusDistribution';
-import { getWeekStart, formatLongDate } from '@/src/utils/date';
+import { getWeekStart, formatLongDate, parseSessionDate } from '@/src/utils/date';
+import { groupSessionsByDate, sortedSessionDates } from '@/src/utils/statistics';
 import { SESSION_PAGE_SIZE } from '@/lib/repositories/ProductivityRepository';
 import type { Session } from '@/src/types';
 
@@ -55,8 +58,8 @@ const DATE_FILTERS: { id: DateFilter; label: string }[] = [
 
 function matchesDateFilter(dateStr: string, filter: DateFilter): boolean {
   if (filter === 'all') return true;
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return true;
+  const date = parseSessionDate(dateStr);
+  if (!date) return true;
   if (filter === 'week') return date >= getWeekStart();
   const now = new Date();
   return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
@@ -106,10 +109,8 @@ export default function TabSessions({
   const [searchTerm, setSearchTerm] = useState('');
   const [startConfig, setStartConfig] = useState<{ task: string; seconds: number } | null>(null);
   const [timerKey, setTimerKey] = useState(0);
-  const [historyLimit, setHistoryLimit] = useState(SESSION_PAGE_SIZE);
-  const [historyRevealing, setHistoryRevealing] = useState(false);
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const revealTimer = useRef<number | null>(null);
+  const [historyPage, setHistoryPage] = useState(1);
+  const historyTopRef = useRef<HTMLDivElement>(null);
 
   const thisWeekCount = useMemo(() => sessions.filter((s) => matchesDateFilter(s.date, 'week')).length, [sessions]);
 
@@ -125,39 +126,62 @@ export default function TabSessions({
     [sessions, dateFilter, statusFilter, categoryFilter, searchTerm, taskTypes],
   );
 
-  const visibleSessions = useMemo(() => filteredSessions.slice(0, historyLimit), [filteredSessions, historyLimit]);
-  const historyHasMore = historyLimit < filteredSessions.length;
-  const historyEnded = !historyHasMore && filteredSessions.length > SESSION_PAGE_SIZE;
+  // Paginate by date groups so a single day is never split across pages.
+  const { visibleSessions, pageCount, pageButtons } = useMemo(() => {
+    const grouped = groupSessionsByDate(filteredSessions);
+    const dates = sortedSessionDates(filteredSessions);
 
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel || historyHasMore === false || historyRevealing) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          setHistoryRevealing(true);
-          revealTimer.current = window.setTimeout(() => {
-            revealTimer.current = null;
-            setHistoryLimit((l) => l + SESSION_PAGE_SIZE);
-            setHistoryRevealing(false);
-          }, 350);
-        }
-      },
-      { rootMargin: '240px 0px' },
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [historyHasMore, historyRevealing]);
+    const pages: string[][] = [];
+    let current: string[] = [];
+    let count = 0;
+    for (const date of dates) {
+      const dayCount = grouped[date]?.length ?? 0;
+      if (current.length > 0 && count + dayCount > SESSION_PAGE_SIZE) {
+        pages.push(current);
+        current = [];
+        count = 0;
+      }
+      current.push(date);
+      count += dayCount;
+    }
+    if (current.length > 0) pages.push(current);
 
-  useEffect(() => {
-    return () => {
-      if (revealTimer.current) window.clearTimeout(revealTimer.current);
+    const total = pages.length;
+    const activePage = Math.min(Math.max(historyPage, 1), Math.max(total, 1));
+    const activeDates = pages[activePage - 1] ?? [];
+
+    let buttons: (number | 'ellipsis')[];
+    if (total <= 7) {
+      buttons = Array.from({ length: total }, (_, i) => i + 1);
+    } else {
+      const wanted = new Set<number>([1, total, activePage - 1, activePage, activePage + 1]);
+      const sorted = [...wanted].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
+      buttons = [];
+      let prev = 0;
+      for (const p of sorted) {
+        if (p - prev > 1) buttons.push('ellipsis');
+        buttons.push(p);
+        prev = p;
+      }
+    }
+
+    return {
+      visibleSessions: activeDates.flatMap((date) => grouped[date] ?? []),
+      pageCount: total,
+      pageButtons: buttons,
     };
-  }, []);
+  }, [filteredSessions, historyPage]);
 
   const resetHistoryPaging = () => {
-    setHistoryLimit(SESSION_PAGE_SIZE);
-    setHistoryRevealing(false);
+    setHistoryPage(1);
+  };
+
+  const goToHistoryPage = (page: number) => {
+    if (page === historyPage || page < 1 || page > pageCount) return;
+    setHistoryPage(page);
+    requestAnimationFrame(() => {
+      historyTopRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+    });
   };
 
   const handleStatusFilter = (filter: SessionStatusFilter) => {
@@ -366,6 +390,7 @@ export default function TabSessions({
               <SessionCalendar sessions={filteredSessions} onDeleteSession={onDeleteSession} />
             ) : (
               <>
+                <div ref={historyTopRef} className="h-px scroll-mt-24" aria-hidden="true" />
                 <SessionHistoryList
                   sessions={visibleSessions}
                   onDeleteSession={onDeleteSession}
@@ -373,31 +398,54 @@ export default function TabSessions({
                   onStartNew={handleStartNew}
                 />
 
-                {historyHasMore && (
-                  <div className="space-y-2">
-                    {historyRevealing && (
-                      <div className="card-glass rounded-[22px] divide-y divide-divider overflow-hidden animate-pulse">
-                        {[0, 1, 2].map((i) => (
-                          <div key={i} className="flex items-center gap-3 px-5 py-4">
-                            <div className="w-9 h-9 rounded-[10px] bg-surface-hover shrink-0" />
-                            <div className="flex-1 space-y-1.5">
-                              <div className="h-3.5 w-48 rounded-full bg-surface-hover" />
-                              <div className="h-3 w-28 rounded-full bg-surface-hover/70" />
-                            </div>
-                            <div className="h-3 w-16 rounded-full bg-surface-hover" />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <div ref={sentinelRef} className="h-px" aria-hidden="true" />
-                  </div>
-                )}
-
-                {historyEnded && (
-                  <div className="flex items-center justify-center gap-2 py-2 text-xs text-text-muted">
-                    <FiCheckCircle size={13} className="shrink-0" />
-                    <span>You&rsquo;ve reached the end of your session history.</span>
-                  </div>
+                {pageCount > 1 && (
+                  <nav
+                    aria-label="Session history pagination"
+                    className="flex flex-wrap items-center justify-between gap-3 pt-2"
+                  >
+                    <p className="text-xs text-text-muted tabular-nums">
+                      Page {Math.min(historyPage, pageCount)} of {pageCount}
+                    </p>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => goToHistoryPage(historyPage - 1)}
+                        disabled={historyPage <= 1}
+                        aria-label="Previous page"
+                        className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-[13px] font-medium text-text-secondary outline-none transition-colors duration-150 hover:bg-surface-hover/60 hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-secondary"
+                      >
+                        <FiChevronLeft size={14} aria-hidden /> Prev
+                      </button>
+                      {pageButtons.map((btn, i) =>
+                        btn === 'ellipsis' ? (
+                          <span key={`ellipsis-${i}`} className="px-1 text-[13px] text-text-muted" aria-hidden>
+                            …
+                          </span>
+                        ) : (
+                          <button
+                            key={btn}
+                            onClick={() => goToHistoryPage(btn)}
+                            aria-current={btn === historyPage ? 'page' : undefined}
+                            aria-label={`Page ${btn}`}
+                            className={`inline-flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-[13px] font-medium tabular-nums outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                              btn === historyPage
+                                ? 'bg-surface-hover text-text'
+                                : 'text-text-secondary hover:bg-surface-hover/60 hover:text-text'
+                            }`}
+                          >
+                            {btn}
+                          </button>
+                        ),
+                      )}
+                      <button
+                        onClick={() => goToHistoryPage(historyPage + 1)}
+                        disabled={historyPage >= pageCount}
+                        aria-label="Next page"
+                        className="inline-flex h-8 items-center gap-1 rounded-lg px-2.5 text-[13px] font-medium text-text-secondary outline-none transition-colors duration-150 hover:bg-surface-hover/60 hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-secondary"
+                      >
+                        Next <FiChevronRight size={14} aria-hidden />
+                      </button>
+                    </div>
+                  </nav>
                 )}
               </>
             )}

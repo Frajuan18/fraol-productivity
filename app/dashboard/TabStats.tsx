@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useId } from 'react';
+import { useEffect, useMemo, useRef, useState, useId } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import {
   FiClock,
@@ -21,9 +21,16 @@ import {
 } from 'react-icons/fi';
 import { FaFire } from 'react-icons/fa';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { sumSessionMinutes, formatMinutesAsHoursMinutes } from '@/src/utils/time';
+import { sumSessionMinutes, formatMinutes } from '@/src/utils/time';
 import { calculateStreak, calculateSuccessRate } from '@/src/utils/statistics';
-import { formatShortDate, formatLongDate, toIsoDateString, getWeekStart, getPreviousWeekStart } from '@/src/utils/date';
+import {
+  formatShortDate,
+  formatLongDate,
+  toIsoDateString,
+  getWeekStart,
+  getPreviousWeekStart,
+  parseSessionDate,
+} from '@/src/utils/date';
 import { AnimatedNumber } from '@/src/components/ui/AnimatedNumber';
 import { PLAN_STATUS } from '@/src/types';
 import type { Session, Plan } from '@/src/types';
@@ -133,7 +140,9 @@ function sessionsInRange(sessions: Session[], start: Date, end: Date): Session[]
   const startMs = start.getTime();
   const endMs = end.getTime();
   return sessions.filter((s) => {
-    const t = new Date(s.date).getTime();
+    const d = parseSessionDate(s.date);
+    if (!d) return false;
+    const t = d.getTime();
     return t >= startMs && t <= endMs;
   });
 }
@@ -210,7 +219,7 @@ function buildBuckets(sessions: Session[], range: RangeKey, now = new Date()): B
     return buckets;
   }
 
-  const sessionTimes = sessions.map((s) => new Date(s.date).getTime()).filter((t) => !Number.isNaN(t));
+  const sessionTimes = sessions.map((s) => parseSessionDate(s.date)?.getTime() ?? NaN).filter((t) => !Number.isNaN(t));
   const firstTime = sessionTimes.length > 0 ? Math.min(...sessionTimes) : now.getTime();
   const cursor = new Date(firstTime);
   cursor.setDate(1);
@@ -236,19 +245,33 @@ function buildBuckets(sessions: Session[], range: RangeKey, now = new Date()): B
   return buckets;
 }
 
-function smoothLine(points: { x: number; y: number }[]): string {
+function monotoneLine(points: { x: number; y: number }[]): string {
   if (points.length === 0) return '';
   if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
-  let d = `M ${points[0].x} ${points[0].y}`;
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[i - 1] ?? points[i];
+  const n = points.length;
+  const tangents: number[] = new Array(n);
+  for (let i = 0; i < n; i++) {
+    const prev = points[Math.max(0, i - 1)];
+    const next = points[Math.min(n - 1, i + 1)];
+    tangents[i] = (next.y - prev.y) / (next.x - prev.x || 1);
+  }
+  for (let i = 0; i < n - 1; i++) {
+    const m1 = i > 0 ? (points[i].y - points[i - 1].y) / (points[i].x - points[i - 1].x || 1) : tangents[i];
+    const m2 = tangents[i + 1];
+    if (m1 * m2 < 0) {
+      tangents[i] = 0;
+      tangents[i + 1] = 0;
+    }
+  }
+  let d = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
+  for (let i = 0; i < n - 1; i++) {
     const p1 = points[i];
     const p2 = points[i + 1];
-    const p3 = points[i + 2] ?? p2;
-    const c1x = p1.x + (p2.x - p0.x) / 6;
-    const c1y = p1.y + (p2.y - p0.y) / 6;
-    const c2x = p2.x - (p3.x - p1.x) / 6;
-    const c2y = p2.y - (p3.y - p1.y) / 6;
+    const dx = p2.x - p1.x;
+    const c1x = p1.x + dx / 3;
+    const c1y = p1.y + (tangents[i] * dx) / 3;
+    const c2x = p2.x - dx / 3;
+    const c2y = p2.y - (tangents[i + 1] * dx) / 3;
     d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
   }
   return d;
@@ -267,7 +290,7 @@ function SectionTitle({
     <div className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-2.5">
         <Icon size={18} className="text-text-secondary" />
-        <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-text">{title}</h2>
+        <h2 className="text-[17px] font-medium tracking-[-0.01em] text-text">{title}</h2>
       </div>
       {right}
     </div>
@@ -419,82 +442,147 @@ function InfoTip({ text }: { text: string }) {
 function FocusChart({ buckets, onViewSessions }: { buckets: Bucket[]; onViewSessions?: () => void }) {
   const reduced = useReducedMotion();
   const uid = useId();
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
   const [hover, setHover] = useState<number | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
 
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    setWidth(el.clientWidth);
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 0;
+      setWidth((prev) => (Math.abs(prev - w) > 0.5 ? w : prev));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const height = 224;
+  const padX = 8;
+  const padTop = 18;
+  const padBottom = 10;
+
   const max = Math.max(...buckets.map((b) => b.minutes), 1);
+  const innerW = Math.max(0, width - padX * 2);
+  const innerH = height - padTop - padBottom;
+
   const points = buckets.map((b, i) => ({
-    x: buckets.length > 1 ? (i / (buckets.length - 1)) * 100 : 50,
-    y: 34 - (b.minutes / max) * 24,
+    x: buckets.length > 1 ? padX + (i / (buckets.length - 1)) * innerW : width / 2,
+    y: padTop + (1 - b.minutes / max) * innerH,
   }));
-  const path = smoothLine(points);
-  const area = `${path} L 100 34 L 0 34 Z`;
-  const tooltipLeft = hover !== null ? Math.min(92, Math.max(8, (hover / (buckets.length - 1)) * 100)) : 0;
+  const path = monotoneLine(points);
+  const area =
+    points.length > 0
+      ? `${path} L ${points[points.length - 1].x.toFixed(2)} ${height - padBottom} L ${points[0].x.toFixed(
+          2,
+        )} ${height - padBottom} Z`
+      : '';
   const totalMinutes = buckets.reduce((acc, b) => acc + b.minutes, 0);
   const hasAnyData = totalMinutes > 0;
   const axisStep = Math.max(1, Math.ceil(buckets.length / 7));
 
+  // Tracking cursor: nearest data point to the pointer (hover wins over selection)
+  const activeIdx = hover ?? selected;
+  const activePoint = activeIdx !== null && width > 0 ? points[activeIdx] : null;
+  const tipFlipsLeft = activePoint !== null && activePoint.x > width - 180;
+
+  const gridCount = 3;
+  const gridYs = Array.from({ length: gridCount }, (_, i) => padTop + ((i + 1) / (gridCount + 1)) * innerH);
+
   return (
     <>
-      <div className="relative h-40">
-        <motion.svg
-          viewBox="0 0 100 36"
-          className="w-full h-full"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: reduced ? 0 : 0.5 }}
-        >
-          <defs>
-            <linearGradient id={`${uid}-area`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.12" />
-              <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          {[10, 18, 26, 34].map((y) => (
-            <line
-              key={y}
-              x1="0"
-              y1={y}
-              x2="100"
-              y2={y}
-              stroke="var(--chart-grid)"
-              strokeWidth="1"
-              vectorEffect="non-scaling-stroke"
-            />
-          ))}
-          {hasAnyData && <path d={area} fill={`url(#${uid}-area)`} />}
-          {hasAnyData && (
-            <motion.path
-              d={path}
-              fill="none"
-              stroke="var(--accent)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: reduced ? 0 : 0.7, ease: 'easeOut' }}
-            />
-          )}
-          {hasAnyData &&
-            points.map((p, i) => (
-              <motion.circle
-                key={i}
-                cx={p.x}
-                cy={p.y}
-                r={buckets[i].minutes > 0 ? 1.6 : 0.9}
-                fill={buckets[i].minutes > 0 ? 'var(--accent)' : 'var(--surface-hover)'}
-                stroke="var(--page)"
-                strokeWidth="0.4"
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: reduced ? 0 : 0.3, delay: reduced ? 0 : 0.2 + i * 0.02 }}
+      <div ref={wrapRef} className="relative" style={{ height }}>
+        {width > 0 && (
+          <motion.svg
+            width={width}
+            height={height}
+            className="block"
+            aria-hidden="true"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: reduced ? 0 : 0.5 }}
+          >
+            <defs>
+              <linearGradient id={`${uid}-area`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--text)" stopOpacity="0.14" />
+                <stop offset="100%" stopColor="var(--text)" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            {gridYs.map((y) => (
+              <line
+                key={y}
+                x1="0"
+                y1={y}
+                x2={width}
+                y2={y}
+                stroke="var(--border)"
+                strokeWidth="1"
+                strokeDasharray="2 5"
+                strokeLinecap="round"
               />
             ))}
-        </motion.svg>
+            <line
+              x1="0"
+              y1={height - padBottom}
+              x2={width}
+              y2={height - padBottom}
+              stroke="var(--text)"
+              strokeOpacity="0.2"
+              strokeWidth="1.5"
+            />
+            {hasAnyData && <path d={area} fill={`url(#${uid}-area)`} />}
+            {hasAnyData && (
+              <motion.path
+                d={path}
+                fill="none"
+                stroke="var(--text)"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: reduced ? 0 : 0.7, ease: 'easeOut' }}
+              />
+            )}
+            {hasAnyData && (
+              <AnimatePresence>
+                {activePoint && (
+                  <motion.g
+                    key="tracker"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: reduced ? 0 : 0.15 }}
+                  >
+                    {/* Vertical tracking line */}
+                    <line
+                      x1={activePoint.x}
+                      x2={activePoint.x}
+                      y1={padTop - 4}
+                      y2={height - padBottom}
+                      stroke="var(--text)"
+                      strokeOpacity="0.3"
+                      strokeWidth="1"
+                      strokeDasharray="3 4"
+                    />
+                    {/* Point revealed only while tracking */}
+                    <circle cx={activePoint.x} cy={activePoint.y} r={10} fill="var(--text)" fillOpacity="0.14" />
+                    <circle
+                      cx={activePoint.x}
+                      cy={activePoint.y}
+                      r={5}
+                      fill="var(--text)"
+                      stroke="var(--page)"
+                      strokeWidth="2"
+                    />
+                  </motion.g>
+                )}
+              </AnimatePresence>
+            )}
+          </motion.svg>
+        )}
 
         <div className="absolute inset-0 flex">
           {buckets.map((b, i) => (
@@ -507,19 +595,22 @@ function FocusChart({ buckets, onViewSessions }: { buckets: Bucket[]; onViewSess
               onFocus={() => setHover(i)}
               onBlur={() => setHover(null)}
               onClick={() => setSelected((prev) => (prev === i ? null : i))}
-              aria-label={`${b.label} — ${formatMinutesAsHoursMinutes(b.minutes)} focused, ${b.count} session${b.count !== 1 ? 's' : ''}`}
+              aria-label={`${b.label} — ${formatMinutes(b.minutes)} focused, ${b.count} session${b.count !== 1 ? 's' : ''}`}
               aria-pressed={selected === i}
               className="flex-1 h-full rounded-md outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             />
           ))}
         </div>
 
-        {hover !== null && (
-          <div className="pointer-events-none absolute top-0 z-20 -translate-x-1/2" style={{ left: `${tooltipLeft}%` }}>
-            <div className="card-glass rounded-lg px-3 py-2 text-xs whitespace-nowrap -mt-1">
+        {hover !== null && activePoint && (
+          <div
+            className={`pointer-events-none absolute top-0 z-20 ${tipFlipsLeft ? '-translate-x-full' : ''}`}
+            style={{ left: activePoint.x + (tipFlipsLeft ? -12 : 12) }}
+          >
+            <div className="card-glass rounded-lg px-3 py-2 text-xs whitespace-nowrap">
               <div className="font-medium text-text">{buckets[hover].label}</div>
               <div className="text-text-muted mt-0.5">
-                {formatMinutesAsHoursMinutes(buckets[hover].minutes)} focused &middot; {buckets[hover].count} session
+                {formatMinutes(buckets[hover].minutes)} focused &middot; {buckets[hover].count} session
                 {buckets[hover].count !== 1 ? 's' : ''}
               </div>
               <div className="text-text-muted">{buckets[hover].completed} completed</div>
@@ -530,10 +621,7 @@ function FocusChart({ buckets, onViewSessions }: { buckets: Bucket[]; onViewSess
 
       <div className="flex justify-between mt-2 px-0.5">
         {buckets.map((b, i) => (
-          <span
-            key={b.key}
-            className={`text-[10px] text-text-muted tabular-nums ${i % axisStep !== 0 ? 'opacity-0' : ''}`}
-          >
+          <span key={b.key} className={`text-xs text-text-muted tabular-nums ${i % axisStep !== 0 ? 'opacity-0' : ''}`}>
             {b.axis}
           </span>
         ))}
@@ -557,7 +645,7 @@ function FocusChart({ buckets, onViewSessions }: { buckets: Bucket[]; onViewSess
                   </div>
                   <div className="text-[13px] text-text-secondary">
                     <span className="font-medium text-text tabular-nums">
-                      {formatMinutesAsHoursMinutes(buckets[selected].minutes)}
+                      {formatMinutes(buckets[selected].minutes)}
                     </span>{' '}
                     focus time
                   </div>
@@ -631,7 +719,7 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
   }, [rangeMinutes, prevMinutes]);
 
   const firstSessionLabel = useMemo(() => {
-    const times = sessions.map((s) => new Date(s.date).getTime()).filter((t) => !Number.isNaN(t));
+    const times = sessions.map((s) => parseSessionDate(s.date)?.getTime() ?? NaN).filter((t) => !Number.isNaN(t));
     if (times.length === 0) return '';
     const first = new Date(Math.min(...times));
     return first.toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -681,7 +769,7 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
       value: rangeCounts.total,
       icon: FiClock,
       iconClass: 'text-text-muted',
-      sub: noSessions ? 'No sessions yet' : `${formatMinutesAsHoursMinutes(rangeMinutes)} total`,
+      sub: noSessions ? 'No sessions yet' : `${formatMinutes(rangeMinutes)} total`,
     },
     {
       label: 'Completed',
@@ -715,8 +803,7 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
     {
       label: 'Best day',
       value: bestBucket && bestBucket.minutes > 0 ? bestBucket.axis : '—',
-      sub:
-        bestBucket && bestBucket.minutes > 0 ? `${formatMinutesAsHoursMinutes(bestBucket.minutes)} focused` : 'No data',
+      sub: bestBucket && bestBucket.minutes > 0 ? `${formatMinutes(bestBucket.minutes)} focused` : 'No data',
     },
     {
       label: 'Sessions',
@@ -741,7 +828,7 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
       list.push({
         icon: FiStar,
         text: `Your strongest focus was ${bestBucket.label}.`,
-        sub: `${formatMinutesAsHoursMinutes(bestBucket.minutes)} of focus`,
+        sub: `${formatMinutes(bestBucket.minutes)} of focus`,
       });
     }
     if (avgSessionMin > 0) {
@@ -755,7 +842,7 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
       if (range === 'all') {
         list.push({
           icon: FiTrendingUp,
-          text: `You've logged ${formatMinutesAsHoursMinutes(rangeMinutes)} of focus in total.`,
+          text: `You've logged ${formatMinutes(rangeMinutes)} of focus in total.`,
           sub: `${rangeCounts.total} session${rangeCounts.total !== 1 ? 's' : ''} all time`,
         });
       } else if (trend.type === 'up' || trend.type === 'down') {
@@ -781,12 +868,12 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* ===== Header ===== */}
       <motion.header {...fade(0)} className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <div className="text-[13px] text-text-muted">{formatLongDate(new Date())}</div>
-          <h1 className="mt-1.5 text-[34px] sm:text-[40px] font-semibold leading-[1.1] tracking-[-0.025em] text-text">
+          <h1 className="mt-1 text-[24px] sm:text-[28px] font-medium leading-[1.15] tracking-[-0.025em] text-text">
             Statistics
           </h1>
           <p className="mt-2 text-[15px] text-text-secondary">Your focus, scores, and trends at a glance.</p>
@@ -801,8 +888,8 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
         <div className="flex flex-col lg:flex-row lg:items-end gap-5 lg:gap-0">
           <div className="lg:flex-1">
             <div className="text-[13px] text-text-muted">Total Focus Time &middot; {RANGE_LABELS[range]}</div>
-            <div className="mt-1.5 text-5xl lg:text-6xl font-semibold tracking-[-0.02em] text-text tabular-nums leading-none">
-              {formatMinutesAsHoursMinutes(rangeMinutes)}
+            <div className="mt-1 text-3xl lg:text-4xl font-medium tracking-[-0.02em] text-text tabular-nums leading-none">
+              {formatMinutes(rangeMinutes)}
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary">
               <span>
@@ -845,17 +932,17 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
             <div className="flex items-center gap-5 lg:pl-8 lg:border-l border-border">
               <div className="text-center">
                 <div className="text-xs text-text-muted mb-1">Best {range === 'week' ? 'day' : 'period'}</div>
-                <div className="text-lg font-semibold text-text tabular-nums">
+                <div className="text-lg font-medium text-text tabular-nums">
                   {bestBucket && bestBucket.minutes > 0 ? bestBucket.axis : '\u2014'}
                 </div>
               </div>
               <div className="text-center">
                 <div className="text-xs text-text-muted mb-1">Completion</div>
-                <div className="text-lg font-semibold text-text tabular-nums">{successRate}%</div>
+                <div className="text-lg font-medium text-text tabular-nums">{successRate}%</div>
               </div>
               <div className="text-center">
                 <div className="text-xs text-text-muted mb-1">Avg session</div>
-                <div className="text-lg font-semibold text-text tabular-nums">{avgSessionMin}m</div>
+                <div className="text-lg font-medium text-text tabular-nums">{avgSessionMin}m</div>
               </div>
             </div>
           )}
@@ -877,7 +964,7 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
               </p>
               <button
                 onClick={() => onNavigateTab?.('sessions')}
-                className="mt-5 inline-flex items-center gap-2 bg-accent hover:bg-accent-hover text-accent-contrast rounded-[12px] px-5 h-10 text-[14px] font-semibold transition-colors duration-200 active:opacity-80 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
+                className="mt-5 inline-flex items-center gap-2 bg-accent hover:bg-accent-hover text-accent-contrast rounded-[12px] px-5 h-10 text-[14px] font-medium transition-colors duration-200 active:opacity-80 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
               >
                 <FiPlay size={15} className="fill-current" /> Start focus
               </button>
@@ -928,7 +1015,7 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm font-medium text-text">{insight.title}</p>
                       <span
-                        className={`text-[10px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5 ${style.pill}`}
+                        className={`text-[10px] font-medium uppercase tracking-wide rounded-full px-2 py-0.5 ${style.pill}`}
                       >
                         {SEVERITY_LABELS[insight.severity]}
                       </span>
@@ -960,7 +1047,7 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
               >
                 <span className="text-xs font-medium text-text-secondary">{item.label}</span>
                 <div className="mt-1.5 flex items-baseline justify-between gap-2">
-                  <span className="text-[26px] font-semibold tracking-tight text-text tabular-nums leading-none">
+                  <span className="text-[26px] font-medium tracking-tight text-text tabular-nums leading-none">
                     <AnimatedNumber value={item.value} />
                   </span>
                   <span className={item.iconClass}>
@@ -991,7 +1078,7 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
             />
             <div className="mt-5 flex items-center gap-5">
               <ProgressRing value={successRate} size={88} strokeWidth={6} reduced={reduced}>
-                <span className="text-lg font-bold text-text tabular-nums">
+                <span className="text-lg font-medium text-text tabular-nums">
                   {noSessions ? '\u2014' : <AnimatedNumber value={successRate} suffix="%" />}
                 </span>
               </ProgressRing>
@@ -1031,7 +1118,7 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
               </div>
               <div>
                 <div className="flex items-end gap-1.5">
-                  <span className="text-4xl font-semibold tracking-tight text-text tabular-nums">
+                  <span className="text-3xl font-medium tracking-tight text-text tabular-nums">
                     <AnimatedNumber value={streak} />
                   </span>
                   <span className="text-sm text-text-secondary mb-1">day{streak !== 1 ? 's' : ''}</span>
@@ -1061,7 +1148,7 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
                 {streak === 0 ? (
                   <button
                     onClick={() => onNavigateTab?.('sessions')}
-                    className="inline-flex items-center gap-2 rounded-xl bg-accent hover:bg-accent-hover text-accent-contrast px-4 h-9 text-[13px] font-semibold transition-colors duration-200 active:opacity-80 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
+                    className="inline-flex items-center gap-2 rounded-xl bg-accent hover:bg-accent-hover text-accent-contrast px-4 h-9 text-[13px] font-medium transition-colors duration-200 active:opacity-80 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
                   >
                     <FiPlay size={14} className="fill-current" /> Start a session
                   </button>
@@ -1080,7 +1167,7 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
               {quickCells.map((cell) => (
                 <div key={cell.label} className="bg-surface p-4">
                   <div className="text-xs text-text-muted">{cell.label}</div>
-                  <div className="mt-1.5 text-[22px] font-semibold tracking-tight text-text tabular-nums">
+                  <div className="mt-1.5 text-[22px] font-medium tracking-tight text-text tabular-nums">
                     {cell.value}
                   </div>
                   <div className="mt-0.5 text-[10px] text-text-muted">{cell.sub}</div>
@@ -1119,7 +1206,7 @@ export default function TabStats({ sessions = [], plans = [], analytics, onNavig
                 </p>
                 <button
                   onClick={() => onNavigateTab?.('plans')}
-                  className="mt-5 inline-flex items-center gap-2 bg-accent hover:bg-accent-hover text-accent-contrast rounded-[12px] px-5 h-10 text-[14px] font-semibold transition-colors duration-200 active:opacity-80 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
+                  className="mt-5 inline-flex items-center gap-2 bg-accent hover:bg-accent-hover text-accent-contrast rounded-[12px] px-5 h-10 text-[14px] font-medium transition-colors duration-200 active:opacity-80 focus-visible:ring-2 focus-visible:ring-focus-ring outline-none"
                 >
                   <FiPlus size={16} /> Create a plan
                 </button>

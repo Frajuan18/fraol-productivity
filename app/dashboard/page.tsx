@@ -11,6 +11,7 @@ import { getErrorCode } from '@/lib/repositories/errors';
 import { deletePlanFile } from '@/lib/plans/planFileApi';
 import type { AnalyticsResult } from '@/lib/analytics/types';
 import type { Session, Plan, PlanStatus } from '@/src/types';
+import { sumSessionMinutes, formatMinutes } from '@/src/utils/time';
 
 const TabOverview = dynamic(() => import('./TabOverview'), { ssr: false });
 const TabSessions = dynamic(() => import('./TabSessions'), { ssr: false });
@@ -36,6 +37,8 @@ function DashboardContent() {
   const [sessionsSub, setSessionsSub] = useState<'new' | 'history'>('new');
   const [plansSection, setPlansSection] = useState<'plans' | 'history'>('plans');
   const [isLoading, setIsLoading] = useState(true);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [writeError, setWriteError] = useState<string | null>(null);
 
   const [weeklyStreak, setWeeklyStreak] = useState(0);
   const [totalFocusHours, setTotalFocusHours] = useState(0);
@@ -46,6 +49,10 @@ function DashboardContent() {
     plansRef.current = plansData;
   }, [plansData]);
   const [focusSessions, setFocusSessions] = useState<Session[]>([]);
+  const focusSessionsRef = useRef<Session[]>([]);
+  useEffect(() => {
+    focusSessionsRef.current = focusSessions;
+  }, [focusSessions]);
   const [analytics, setAnalytics] = useState<AnalyticsResult | null>(null);
   const [dailyStats, setDailyStats] = useState({
     focusTime: '0h',
@@ -76,6 +83,7 @@ function DashboardContent() {
         }
 
         const data = await repository.loadAppData();
+        setConnectionError(null);
         if (data.plans) setPlansData(data.plans);
         if (data.sessions) setFocusSessions(data.sessions);
         if (data.stats) {
@@ -103,7 +111,9 @@ function DashboardContent() {
             .catch((error) => console.error('Failed to load analytics:', error));
         }
       } catch (error) {
+        const msg = error instanceof Error ? error.message : 'Failed to connect to the database.';
         console.error('Error loading data:', error);
+        setConnectionError(msg);
       } finally {
         setIsLoading(false);
       }
@@ -133,11 +143,19 @@ function DashboardContent() {
 
   const handleAddSession = useCallback(
     (newSession: Session) => {
-      setFocusSessions((prev) => [newSession, ...prev]);
-      setDailyStats((prev) => ({ ...prev, sessions: (prev.sessions || 0) + 1 }));
+      const updated = [newSession, ...focusSessionsRef.current];
+      focusSessionsRef.current = updated;
+      setFocusSessions(updated);
+      const totalMinutes = sumSessionMinutes(updated);
+      setTotalFocusHours(Math.round((totalMinutes / 60) * 10) / 10);
+      setDailyStats((prev) => ({
+        ...prev,
+        sessions: (prev.sessions || 0) + 1,
+        focusTime: formatMinutes(totalMinutes),
+      }));
       if (isMongoMode) {
         const userId = currentUserId.current;
-        void repository
+        repository
           .createSession(userId, {
             task: newSession.task,
             duration: newSession.duration,
@@ -147,7 +165,15 @@ function DashboardContent() {
             endTime: newSession.endTime,
             actualDuration: newSession.actualDuration,
           })
-          .catch((error) => console.error('Failed to save session:', error));
+          .then((created) => {
+            setFocusSessions((prev) => prev.map((s) => (s.id === newSession.id ? created : s)));
+            focusSessionsRef.current = focusSessionsRef.current.map((s) => (s.id === newSession.id ? created : s));
+            setWriteError(null);
+          })
+          .catch((error) => {
+            console.error('Failed to save session:', error);
+            setWriteError(error instanceof Error ? error.message : 'Failed to save session to database.');
+          });
         const uid = currentUserId.current;
         void repository
           .refreshAnalytics(uid)
@@ -158,42 +184,81 @@ function DashboardContent() {
     [isMongoMode, repository],
   );
 
-  const handleUpdateSession = useCallback((id: number, data: Partial<Session>) => {
-    setFocusSessions((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)));
-  }, []);
+  const handleUpdateSession = useCallback(
+    (id: number, data: Partial<Session>) => {
+      setFocusSessions((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)));
+      if (isMongoMode) {
+        const userId = currentUserId.current;
+        repository
+          .updateSession(userId, String(id), data)
+          .then(() => {
+            setWriteError(null);
+          })
+          .catch((error) => {
+            console.error('Failed to update session:', error);
+            setWriteError(error instanceof Error ? error.message : 'Failed to update session.');
+          });
+      }
+    },
+    [isMongoMode, repository],
+  );
 
-  const handleDeleteSession = useCallback((id: number) => {
-    setFocusSessions((prev) => prev.filter((s) => s.id !== id));
-  }, []);
+  const handleDeleteSession = useCallback(
+    (id: number) => {
+      setFocusSessions((prev) => prev.filter((s) => s.id !== id));
+      if (isMongoMode) {
+        const userId = currentUserId.current;
+        repository
+          .deleteSession(userId, String(id))
+          .then(() => {
+            setWriteError(null);
+          })
+          .catch((error) => {
+            console.error('Failed to delete session:', error);
+            setWriteError(error instanceof Error ? error.message : 'Failed to delete session.');
+          });
+      }
+    },
+    [isMongoMode, repository],
+  );
 
   const handleAddPlan = useCallback(
     (newPlan: Omit<Plan, 'id' | 'status'>) => {
-      const plan: Plan = {
-        ...newPlan,
-        id: Date.now(),
-        status: 'not-started',
-        date: newPlan.date || new Date().toISOString().split('T')[0],
-      };
-      setPlansData((prev) => [plan, ...prev]);
+      const date = newPlan.date || new Date().toISOString().split('T')[0];
       if (isMongoMode) {
         const userId = currentUserId.current;
-        void repository
+        repository
           .createPersonalPlan(userId, {
             title: newPlan.title,
             description: newPlan.description,
             type: newPlan.type,
             priority: newPlan.priority,
             category: newPlan.category,
-            date: plan.date,
+            date,
             status: 'not-started',
             file: newPlan.file ?? null,
           })
-          .catch((error) => console.error('Failed to save plan:', error));
+          .then((created) => {
+            setPlansData((prev) => [created, ...prev]);
+            setWriteError(null);
+          })
+          .catch((error) => {
+            console.error('Failed to save plan:', error);
+            setWriteError(error instanceof Error ? error.message : 'Failed to save plan to database.');
+          });
         const uid = currentUserId.current;
         void repository
           .refreshAnalytics(uid)
           .then(setAnalytics)
           .catch(() => undefined);
+      } else {
+        const plan: Plan = {
+          ...newPlan,
+          id: Date.now(),
+          status: 'not-started',
+          date,
+        };
+        setPlansData((prev) => [plan, ...prev]);
       }
     },
     [isMongoMode, repository],
@@ -201,10 +266,9 @@ function DashboardContent() {
 
   const handleAddPlanFromFile = useCallback(
     (plan: Plan) => {
-      setPlansData((prev) => [plan, ...prev]);
       if (isMongoMode) {
         const userId = currentUserId.current;
-        void repository
+        repository
           .createPersonalPlan(userId, {
             title: plan.title,
             description: plan.description,
@@ -215,7 +279,16 @@ function DashboardContent() {
             status: plan.status,
             file: plan.file ?? null,
           })
-          .catch((error) => console.error('Failed to save file plan:', error));
+          .then((created) => {
+            setPlansData((prev) => [created, ...prev]);
+            setWriteError(null);
+          })
+          .catch((error) => {
+            console.error('Failed to save file plan:', error);
+            setWriteError(error instanceof Error ? error.message : 'Failed to save plan to database.');
+          });
+      } else {
+        setPlansData((prev) => [plan, ...prev]);
       }
     },
     [isMongoMode, repository],
@@ -241,10 +314,15 @@ function DashboardContent() {
           target?.planType === 'common'
             ? repository.updateCommonPlan(userId, id, { status }, target.updatedAt)
             : repository.updatePersonalPlan(userId, id, { status });
-        void call.catch((error) => {
-          console.error('Failed to update plan status:', error);
-          if (getErrorCode(error) === 'CONFLICT') void refreshPlans();
-        });
+        call
+          .then(() => {
+            setWriteError(null);
+          })
+          .catch((error) => {
+            console.error('Failed to update plan status:', error);
+            setWriteError(error instanceof Error ? error.message : 'Failed to update plan.');
+            if (getErrorCode(error) === 'CONFLICT') void refreshPlans();
+          });
       }
     },
     [isMongoMode, repository, refreshPlans],
@@ -260,10 +338,15 @@ function DashboardContent() {
           target?.planType === 'common'
             ? repository.updateCommonPlan(userId, id, data, target.updatedAt)
             : repository.updatePersonalPlan(userId, id, data);
-        void call.catch((error) => {
-          console.error('Failed to update plan:', error);
-          if (getErrorCode(error) === 'CONFLICT') void refreshPlans();
-        });
+        call
+          .then(() => {
+            setWriteError(null);
+          })
+          .catch((error) => {
+            console.error('Failed to update plan:', error);
+            setWriteError(error instanceof Error ? error.message : 'Failed to update plan.');
+            if (getErrorCode(error) === 'CONFLICT') void refreshPlans();
+          });
       }
     },
     [isMongoMode, repository, refreshPlans],
@@ -280,24 +363,60 @@ function DashboardContent() {
       });
       if (isMongoMode) {
         const userId = currentUserId.current;
-        void repository.deletePlan(userId, id).catch((error) => {
-          console.error('Failed to delete plan:', error);
-        });
+        repository
+          .deletePlan(userId, id)
+          .then(() => {
+            setWriteError(null);
+          })
+          .catch((error) => {
+            console.error('Failed to delete plan:', error);
+            setWriteError(error instanceof Error ? error.message : 'Failed to delete plan from database.');
+          });
       }
     },
     [isMongoMode, repository],
   );
 
-  const handleAddTaskType = useCallback((newType: string) => {
-    const trimmed = newType.trim();
-    if (trimmed) {
-      setTaskTypes((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]));
-    }
-  }, []);
+  const handleAddTaskType = useCallback(
+    (newType: string) => {
+      const trimmed = newType.trim();
+      if (trimmed) {
+        setTaskTypes((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]));
+        if (isMongoMode) {
+          const userId = currentUserId.current;
+          repository
+            .addTaskType(userId, trimmed)
+            .then(() => {
+              setWriteError(null);
+            })
+            .catch((error) => {
+              console.error('Failed to save task type:', error);
+              setWriteError(error instanceof Error ? error.message : 'Failed to save task type.');
+            });
+        }
+      }
+    },
+    [isMongoMode, repository],
+  );
 
-  const handleRemoveTaskType = useCallback((type: string) => {
-    setTaskTypes((prev) => prev.filter((t) => t !== type));
-  }, []);
+  const handleRemoveTaskType = useCallback(
+    (type: string) => {
+      setTaskTypes((prev) => prev.filter((t) => t !== type));
+      if (isMongoMode) {
+        const userId = currentUserId.current;
+        repository
+          .removeTaskType(userId, type)
+          .then(() => {
+            setWriteError(null);
+          })
+          .catch((error) => {
+            console.error('Failed to remove task type:', error);
+            setWriteError(error instanceof Error ? error.message : 'Failed to remove task type.');
+          });
+      }
+    },
+    [isMongoMode, repository],
+  );
 
   const activeTabComponent = useMemo(() => {
     switch (activeTab) {
@@ -401,7 +520,7 @@ function DashboardContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-page text-text lg:flex">
+      <div className="dashboard-density min-h-screen bg-page text-text lg:flex">
         <Sidebar
           activeTab="overview"
           setActiveTab={() => {}}
@@ -413,59 +532,31 @@ function DashboardContent() {
           plansSection={plansSection}
           onPlansSectionChange={setPlansSection}
         />
-        <main className="min-w-0 flex-1 max-w-[1360px] mx-auto px-6 sm:px-10 py-8 sm:py-10">
+        <main className="min-w-0 flex-1 max-w-[1360px] mx-auto px-5 sm:px-7 py-6 sm:py-7">
           <div className="animate-pulse space-y-8">
-            <div className="space-y-2">
-              <div className="h-3 w-28 rounded bg-surface-hover" />
-              <div className="h-7 w-64 rounded-lg bg-surface-hover" />
-              <div className="h-3 w-72 rounded bg-surface-hover" />
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div className="max-w-[640px] space-y-2">
+                <div className="h-3 w-28 rounded bg-surface-hover" />
+                <div className="h-9 w-64 rounded-lg bg-surface-hover" />
+                <div className="h-3 w-72 rounded bg-surface-hover" />
+              </div>
+              <div className="h-9 w-44 self-start rounded-full bg-surface-hover md:self-auto" />
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <div className="lg:col-span-8 space-y-6">
-                <div className="card-glass rounded-[22px] p-6 space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2">
-                      <div className="h-4 w-24 rounded bg-surface-hover" />
-                      <div className="h-6 w-48 rounded-lg bg-surface-hover" />
-                    </div>
-                    <div className="h-10 w-28 rounded-xl bg-surface-hover" />
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="h-16 rounded-xl bg-surface-hover" />
-                    <div className="h-16 rounded-xl bg-surface-hover" />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="card-glass flex flex-col rounded-[22px]">
+                  <header className="flex items-center gap-2.5 px-5 pb-3 pt-4">
+                    <div className="h-[17px] w-[17px] shrink-0 rounded bg-surface-hover" />
+                    <div className="h-[15px] w-28 rounded bg-surface-hover" />
+                  </header>
+                  <div className="flex-1 space-y-3 px-5 pb-5">
+                    <div className="h-3 w-3/4 rounded bg-surface-hover" />
+                    <div className="h-7 w-1/2 rounded-lg bg-surface-hover" />
+                    <div className="h-3 w-2/3 rounded bg-surface-hover" />
                     <div className="h-16 rounded-xl bg-surface-hover" />
                   </div>
-                  <div className="flex items-end gap-2 h-24">
-                    {Array.from({ length: 7 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="flex-1 rounded-t-md bg-surface-hover"
-                        style={{ height: `${20 + ((i * 17) % 60)}%` }}
-                      />
-                    ))}
-                  </div>
                 </div>
-                <div className="card-glass rounded-[22px] p-6 space-y-3">
-                  <div className="h-4 w-32 rounded bg-surface-hover" />
-                  <div className="h-8 rounded-lg bg-surface-hover" />
-                  <div className="h-8 rounded-lg bg-surface-hover" />
-                </div>
-              </div>
-              <div className="lg:col-span-4 space-y-6">
-                <div className="card-glass rounded-[22px] p-6 space-y-3">
-                  <div className="h-4 w-28 rounded bg-surface-hover" />
-                  <div className="h-24 rounded-xl bg-surface-hover" />
-                  <div className="h-24 rounded-xl bg-surface-hover" />
-                </div>
-                <div className="card-glass rounded-[22px] p-6 space-y-3">
-                  <div className="h-4 w-24 rounded bg-surface-hover" />
-                  <div className="grid grid-cols-7 gap-1">
-                    {Array.from({ length: 28 }).map((_, i) => (
-                      <div key={i} className="aspect-square rounded bg-surface-hover" />
-                    ))}
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </main>
@@ -473,8 +564,34 @@ function DashboardContent() {
     );
   }
 
+  if (connectionError) {
+    return (
+      <div className="dashboard-density min-h-screen bg-page text-text flex items-center justify-center p-6">
+        <div className="max-w-md w-full card-glass rounded-[22px] p-8 text-center space-y-4">
+          <div className="w-14 h-14 mx-auto rounded-full bg-danger/10 flex items-center justify-center">
+            <svg className="w-7 h-7 text-danger" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+              />
+            </svg>
+          </div>
+          <h2 className="text-lg font-semibold text-text">Database connection failed</h2>
+          <p className="text-sm text-text-secondary leading-relaxed">{connectionError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 inline-flex items-center gap-2 rounded-[12px] bg-accent hover:bg-accent-hover text-accent-contrast px-5 h-10 text-[14px] font-medium transition-colors duration-200"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-page text-text lg:flex">
+    <div className="dashboard-density min-h-screen bg-page text-text lg:flex">
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -486,7 +603,7 @@ function DashboardContent() {
         plansSection={plansSection}
         onPlansSectionChange={setPlansSection}
       />
-      <main className="min-w-0 flex-1 max-w-[1360px] mx-auto px-6 sm:px-10 py-8 sm:py-10">
+      <main className="min-w-0 flex-1 max-w-[1360px] mx-auto px-5 sm:px-7 py-6 sm:py-7">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -499,6 +616,35 @@ function DashboardContent() {
           </motion.div>
         </AnimatePresence>
       </main>
+      {writeError && (
+        <div className="fixed bottom-5 right-5 z-50 max-w-sm animate-in fade-in slide-in-from-bottom-2">
+          <div className="flex items-start gap-3 rounded-xl border border-danger/20 bg-danger/10 px-4 py-3 text-sm text-danger backdrop-blur-sm shadow-lg">
+            <svg
+              className="mt-0.5 h-4 w-4 shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+              />
+            </svg>
+            <span className="flex-1">{writeError}</span>
+            <button
+              onClick={() => setWriteError(null)}
+              className="shrink-0 text-danger/60 hover:text-danger transition-colors"
+              aria-label="Dismiss"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

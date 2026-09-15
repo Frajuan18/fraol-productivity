@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -21,6 +21,7 @@ import {
   FiSun,
   FiMoon,
   FiChevronDown,
+  FiChevronUp,
   FiUsers,
 } from 'react-icons/fi';
 import type { IconType } from 'react-icons';
@@ -128,7 +129,7 @@ function Avatar({ user, size }: { user: string | null; size: number }) {
       ) : (
         <Image
           src="/images/profile.png"
-          alt={`${user || 'User'}'s avatar`}
+          alt="Profile avatar"
           width={size}
           height={size}
           className="h-full w-full object-cover"
@@ -189,12 +190,12 @@ function SidebarContent({
   };
 
   const itemClass = (isActive: boolean) =>
-    `group relative flex h-11 w-full items-center border outline-none transition-all duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
-      isCollapsed ? 'justify-center rounded-xl' : 'gap-2.5 rounded-xl px-3 pr-3 text-[13px]'
+    `group relative flex h-9 w-full items-center rounded-xl outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
+      isCollapsed ? 'justify-center' : 'gap-2.5 px-2.5 text-[13.5px]'
     } ${
       isActive
-        ? 'border-accent/20 bg-accent-muted font-semibold text-accent'
-        : 'border-transparent font-medium text-text-secondary hover:translate-x-[1px] hover:bg-surface-hover hover:text-text'
+        ? 'bg-surface-hover font-medium text-text'
+        : 'font-normal text-text-secondary hover:bg-surface-hover/60 hover:text-text'
     }`;
 
   const tooltip = (label: string) => (
@@ -206,18 +207,38 @@ function SidebarContent({
   return (
     <div className="flex h-full flex-col">
       <div
-        className={`flex h-16 shrink-0 items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-4'}`}
+        className={`flex h-14 shrink-0 items-center ${
+          isCollapsed ? 'flex-col justify-center gap-2 px-0' : 'justify-between pl-4 pr-3'
+        }`}
       >
-        <div className={`flex min-w-0 items-center ${isCollapsed ? '' : 'gap-2.5'}`}>
-          <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-accent text-accent-contrast shadow-[var(--card-shadow)]">
-            <FiZap size={18} />
+        <div className={`flex min-w-0 items-center ${isCollapsed ? '' : 'gap-3'}`}>
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-accent-contrast">
+            <FiZap size={14} />
           </div>
           {!isCollapsed && (
-            <div className="min-w-0">
-              <div className="truncate text-[17px] font-semibold tracking-[-0.01em] text-text">Frabit</div>
-            </div>
+            <button
+              onClick={onToggleCollapsed}
+              aria-label="Workspace"
+              className="flex min-w-0 items-center gap-1.5 rounded-lg py-1 pr-2 outline-none transition-colors duration-150 hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus-ring"
+            >
+              <span className="truncate text-[15px] font-medium tracking-[-0.01em] text-text">Frabit</span>
+              <span className="flex shrink-0 flex-col leading-[0] text-text-muted">
+                <FiChevronUp size={11} />
+                <FiChevronDown size={11} className="-mt-[3px]" />
+              </span>
+            </button>
           )}
         </div>
+        {isDesktop && (
+          <button
+            onClick={onToggleCollapsed}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-secondary outline-none transition-colors duration-150 hover:bg-surface-hover hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring"
+          >
+            <FiSidebar size={18} />
+          </button>
+        )}
         {variant === 'mobile' && (
           <button
             data-close
@@ -232,20 +253,20 @@ function SidebarContent({
 
       <nav
         aria-label="Main navigation"
-        className={`flex-1 ${isCollapsed ? 'px-2 pb-3 pt-3' : 'overflow-y-auto px-3 pb-4 pt-1'}`}
+        className={`flex-1 ${isCollapsed ? 'px-2 pb-3 pt-2' : 'overflow-y-auto px-3 pb-3 pt-0'}`}
       >
         {NAV_GROUPS.map((group, gi) => (
-          <div key={group.label} className={isCollapsed ? 'mt-5 first:mt-0' : ''}>
+          <div key={group.label} className={isCollapsed ? 'mt-4 first:mt-0' : ''}>
             {!isCollapsed && (
               <div
-                className={`px-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted ${
-                  gi === 0 ? 'pt-1' : 'pt-6'
+                className={`px-2.5 pb-1.5 text-[10px] font-medium uppercase tracking-[0.08em] text-text-muted ${
+                  gi === 0 ? 'pt-0.5' : 'pt-5'
                 }`}
               >
                 {group.label}
               </div>
             )}
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
@@ -261,15 +282,15 @@ function SidebarContent({
                       aria-current={isActive ? 'page' : undefined}
                       className={itemClass(isActive)}
                     >
-                      <span className="flex w-6 shrink-0 items-center justify-center">
-                        <Icon size={17} />
+                      <span className="flex w-5 shrink-0 items-center justify-center">
+                        <Icon size={16} />
                       </span>
                       {!isCollapsed && <span className="truncate">{item.label}</span>}
                       {isCollapsed && tooltip(item.label)}
                     </button>
 
                     {item.sub && !isCollapsed && (
-                      <div className="pb-1 pt-0.5">
+                      <div className="pb-0.5 pt-0">
                         {item.sub.map((sub) => {
                           const SubIcon = sub.icon;
                           const isSubActive = subActive === sub.id;
@@ -282,13 +303,13 @@ function SidebarContent({
                                 onNavigate();
                               }}
                               aria-current={isSubActive ? 'true' : undefined}
-                              className={`flex h-9 w-full items-center gap-2 rounded-lg pl-[38px] pr-3 text-[13px] outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
+                              className={`flex h-8 w-full items-center gap-2.5 rounded-lg pl-9 pr-3 text-[13px] outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
                                 isSubActive
-                                  ? 'font-medium text-accent'
-                                  : 'text-text-secondary hover:bg-surface-hover hover:text-text'
+                                  ? 'font-medium text-text'
+                                  : 'font-normal text-text-muted hover:bg-surface-hover hover:text-text'
                               }`}
                             >
-                              <SubIcon size={14} className="shrink-0 opacity-80" />
+                              <SubIcon size={13} className="shrink-0 opacity-80" />
                               <span className="truncate">{sub.label}</span>
                             </button>
                           );
@@ -308,7 +329,7 @@ function SidebarContent({
           className={
             isCollapsed
               ? 'flex flex-col items-center gap-1 px-2 pb-3 pt-3'
-              : 'flex items-center justify-between px-3 pb-4 pt-3'
+              : 'flex items-center justify-between px-4 pb-3 pt-1'
           }
         >
           {isDesktop && (
@@ -316,32 +337,32 @@ function SidebarContent({
               onClick={onToggleCollapsed}
               aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-text-secondary outline-none transition-colors duration-150 hover:bg-surface-hover hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary outline-none transition-colors duration-150 hover:bg-surface-hover hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring"
             >
-              <FiSidebar size={17} />
+              <FiSidebar size={16} />
             </button>
           )}
           <div className={isCollapsed ? 'flex flex-col items-center gap-1' : 'flex items-center gap-0.5'}>
             {!isDesktop && <ThemeToggle />}
             <button
               aria-label="Notifications"
-              className="relative flex h-10 w-10 items-center justify-center rounded-lg text-text-secondary outline-none transition-colors duration-150 hover:bg-surface-hover hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring"
+              className="relative flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary outline-none transition-colors duration-150 hover:bg-surface-hover hover:text-text focus-visible:ring-2 focus-visible:ring-focus-ring"
             >
-              <FiBell size={17} />
+              <FiBell size={16} />
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-danger" />
             </button>
             <button
               onClick={handleLogout}
               aria-label="Sign out"
               title="Sign Out"
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-text-secondary outline-none transition-colors duration-150 hover:bg-danger-muted hover:text-danger focus-visible:ring-2 focus-visible:ring-focus-ring"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary outline-none transition-colors duration-150 hover:bg-danger-muted hover:text-danger focus-visible:ring-2 focus-visible:ring-focus-ring"
             >
-              <FiLogOut size={17} />
+              <FiLogOut size={16} />
             </button>
           </div>
         </div>
 
-        <div className={isCollapsed ? 'px-2 pb-4' : 'px-3 pb-4'}>
+        <div className={isCollapsed ? 'px-2 pb-4' : 'px-4 pb-4'}>
           {partnerName && (
             <button
               onClick={() => {
@@ -355,7 +376,7 @@ function SidebarContent({
             >
               <span
                 className="relative flex shrink-0 items-center justify-center rounded-full bg-accent-muted font-semibold text-accent"
-                style={{ width: isCollapsed ? 36 : 32, height: isCollapsed ? 36 : 32 }}
+                style={{ width: isCollapsed ? 32 : 28, height: isCollapsed ? 32 : 28 }}
               >
                 <span className="text-[13px]">{partnerName[0]?.toUpperCase() ?? 'P'}</span>
                 {partnerStatus && (
@@ -412,6 +433,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const reduced = useReducedMotion();
   const { theme, toggleTheme } = useTheme();
+  const logoSrc = theme === 'dark' ? '/images/logo dark (1).png' : '/images/logo light (2).png';
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [islandOpen, setIslandOpen] = useState(false);
@@ -541,9 +563,7 @@ export default function Sidebar({
           <FiMenu size={20} />
         </button>
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-accent-contrast">
-            <FiZap size={13} />
-          </div>
+          <Image src={logoSrc} alt="Frabit logo" width={26} height={26} className="h-[26px] w-[26px] object-contain" />
           <span className="text-[15px] font-semibold tracking-[-0.01em] text-text">Productivity</span>
         </div>
         <div className="ml-auto flex items-center gap-0.5">
@@ -558,14 +578,52 @@ export default function Sidebar({
         </div>
       </header>
 
-      <aside
-        className="hidden shrink-0 flex-col lg:flex"
-        style={{
-          width: collapsed ? 76 : 248,
-          transition: `width ${reduced ? 0 : 260}ms cubic-bezier(0.2, 0.8, 0.2, 1)`,
-        }}
-      >
-        <SidebarContent variant="desktop" {...contentProps} onNavigate={() => {}} />
+      <aside className="sticky top-0 hidden h-screen w-[72px] shrink-0 flex-col items-center py-5 lg:flex">
+        <button
+          onClick={() => setActiveTab('overview')}
+          aria-label="Frabit home"
+          className="group/logo relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl outline-none transition-transform duration-150 hover:scale-105 focus-visible:ring-2 focus-visible:ring-focus-ring"
+        >
+          <Image src={logoSrc} alt="Frabit logo" width={40} height={40} className="h-10 w-10 object-contain" priority />
+          <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 text-[12px] font-medium text-text opacity-0 shadow-[var(--card-shadow)] transition-all duration-150 group-hover/logo:translate-x-0 group-hover/logo:opacity-100 group-hover/logo:delay-300">
+            Frabit
+          </span>
+        </button>
+        <div className="flex flex-1 items-center">
+          <nav
+            aria-label="Main navigation"
+            className="flex flex-col items-center gap-1 rounded-2xl border border-border bg-surface/80 px-1.5 py-3 shadow-[var(--card-shadow)] backdrop-blur-xl"
+          >
+            {NAV_GROUPS.map((group, gi) => (
+              <Fragment key={group.label}>
+                {gi > 0 && <span className="my-1.5 h-px w-5 bg-border" aria-hidden />}
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <div key={item.id} className="group relative">
+                      <button
+                        onClick={() => setActiveTab(item.id)}
+                        aria-current={isActive ? 'page' : undefined}
+                        aria-label={item.label}
+                        className={`flex h-10 w-10 items-center justify-center rounded-xl outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-focus-ring ${
+                          isActive
+                            ? 'bg-surface-hover text-text'
+                            : 'text-text-secondary hover:bg-surface-hover/60 hover:text-text'
+                        }`}
+                      >
+                        <Icon size={20} />
+                      </button>
+                      <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 text-[12px] font-medium text-text opacity-0 shadow-[var(--card-shadow)] transition-all duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-hover:delay-300 group-focus-visible:translate-x-0 group-focus-visible:opacity-100">
+                        {item.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </Fragment>
+            ))}
+          </nav>
+        </div>
       </aside>
 
       <div ref={islandRef} className="fixed right-4 top-4 z-50 hidden lg:block">

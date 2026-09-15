@@ -4,7 +4,7 @@ import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { FiClock, FiCheckCircle, FiActivity, FiXCircle } from 'react-icons/fi';
 import { useStatistics } from '@/src/hooks/useStatistics';
-import { getWeekStart } from '@/src/utils/date';
+import { getWeekStart, parseSessionDate } from '@/src/utils/date';
 import type { Session } from '@/src/types';
 
 export type SessionStatusFilter = 'all' | 'completed' | 'in-progress' | 'missed';
@@ -18,7 +18,10 @@ export const SessionStatsBar = memo(function SessionStatsBar({ sessions, onFilte
   const stats = useStatistics(sessions, []);
   const { sessionCounts, successRate } = stats;
   const weekStart = getWeekStart();
-  const thisWeekCount = sessions.filter((s) => new Date(s.date) >= weekStart).length;
+  const thisWeekCount = sessions.filter((s) => {
+    const d = parseSessionDate(s.date);
+    return d && d >= weekStart;
+  }).length;
 
   const items: {
     label: string;

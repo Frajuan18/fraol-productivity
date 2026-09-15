@@ -30,7 +30,12 @@ async function connect(): Promise<MongoHandle> {
     );
   }
 
-  // The URI may contain credentials — only ever log the database/connection target, never the URI itself.
+  // The URI may contain credentials — only ever log the database/target, never the URI itself.
+  const hostMatch = uri.match(/@([^/?]+)/);
+  const host = hostMatch ? hostMatch[1] : 'unknown';
+
+  console.log(`[mongodb] Connecting to ${host} (database: ${env.mongodbDatabase})...`);
+
   const client = new MongoClient(uri, {
     appName: 'mywhiteboard',
     serverSelectionTimeoutMS: 10000,
@@ -40,12 +45,25 @@ async function connect(): Promise<MongoHandle> {
   try {
     await client.connect();
   } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error(`[mongodb] Connection failed: ${msg}`);
     throw new Error(
-      `Failed to connect to MongoDB (${error instanceof Error ? error.message : 'unknown error'}). Credentials are never logged.`,
+      `Failed to connect to MongoDB at ${host}. Check your MONGODB_URI, network access, and IP allowlist. Error: ${msg}`,
     );
   }
 
   const db = client.db(env.mongodbDatabase);
+
+  // Verify the connection with a ping
+  try {
+    await db.command({ ping: 1 });
+    console.log(`[mongodb] Connected to ${host}, database: ${env.mongodbDatabase}`);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error(`[mongodb] Ping failed after connect: ${msg}`);
+    throw new Error(`Connected to MongoDB but ping failed on database "${env.mongodbDatabase}". Error: ${msg}`);
+  }
+
   const bucket = new GridFSBucket(db, { bucketName: GRIDFS_BUCKET_NAME });
   return { client, db, bucket };
 }
