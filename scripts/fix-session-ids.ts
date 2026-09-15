@@ -64,10 +64,12 @@ async function main() {
       const newId = String(numericId);
 
       // MongoDB forbids mutating _id, so we insert new then delete old
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { _id: _idField, ...rest } = doc as Document;
-      await sessions.insertOne({ _id: newId, legacyId: numericId, ...rest } as Document);
-      await sessions.deleteOne({ _id: oldId } as Document);
+      const docObj = doc as { _id: unknown } & Record<string, unknown>;
+      const { _id: _idField, ...rest } = docObj;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await sessions.insertOne({ _id: newId, legacyId: numericId, ...rest } as any);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await sessions.deleteOne({ _id: oldId } as any);
       fixed++;
       console.log(`  Fixed: ${oldId} → ${newId}`);
     }
